@@ -1,0 +1,163 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "Profile of a paired caregiver or senior user",
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "Display name of the user"
+        },
+        "listCode": {
+          "type": "string",
+          "description": "Currently active 6-digit shared checklist code"
+        },
+        "role": {
+          "type": "string",
+          "enum": ["opiekun", "senior"],
+          "description": "Role of the user"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp when created"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp when updated"
+        }
+      },
+      "required": ["name", "listCode", "role", "createdAt"]
+    },
+    "UserListMembership": {
+      "title": "UserListMembership",
+      "description": "User's membership in a shared list with a user-defined custom name",
+      "type": "object",
+      "properties": {
+        "code": {
+          "type": "string",
+          "description": "6-digit list code"
+        },
+        "customName": {
+          "type": "string",
+          "description": "User's custom name for this list"
+        },
+        "joinedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp when joined"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp when renamed or updated"
+        }
+      },
+      "required": ["code", "customName", "joinedAt", "updatedAt"]
+    },
+    "SharedList": {
+      "title": "SharedList",
+      "description": "A shared checklist between caregiver and senior",
+      "type": "object",
+      "properties": {
+        "code": {
+          "type": "string",
+          "description": "6-digit list invite code"
+        },
+        "name": {
+          "type": "string",
+          "description": "Name of the shared list"
+        },
+        "ownerUid": {
+          "type": "string",
+          "description": "UID of the list creator"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp when created"
+        }
+      },
+      "required": ["code", "name", "ownerUid", "createdAt"]
+    },
+    "ChecklistItem": {
+      "title": "ChecklistItem",
+      "description": "Checklist item or alarm-style reminder",
+      "type": "object",
+      "properties": {
+        "listCode": {
+          "type": "string",
+          "description": "Parent list 6-digit code"
+        },
+        "text": {
+          "type": "string",
+          "description": "Reminder or task text"
+        },
+        "senderUid": {
+          "type": "string",
+          "description": "UID of the item creator"
+        },
+        "senderName": {
+          "type": "string",
+          "description": "Display name of the item creator"
+        },
+        "deliveryMode": {
+          "type": "integer",
+          "description": "0=silent, 1=notification, 2=alarm call"
+        },
+        "scheduledTime": {
+          "type": "integer",
+          "description": "Epoch millis for scheduled call or 0"
+        },
+        "status": {
+          "type": "string",
+          "enum": ["pending", "notified", "scheduled", "ringing", "answered", "rejected", "completed", "pinned", "cancelled"],
+          "description": "Current status of the item"
+        },
+        "reminderAcknowledgedTime": {
+          "type": "string",
+          "description": "HH:mm formatted acknowledgement time"
+        },
+        "alertByUid": {
+          "type": "string",
+          "description": "UID of user who triggered the notification or call"
+        },
+        "alertByName": {
+          "type": "string",
+          "description": "Display name of user who triggered the notification or call"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp when created"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp when updated"
+        }
+      },
+      "required": ["listCode", "text", "senderUid", "senderName", "deliveryMode", "scheduledTime", "status", "reminderAcknowledgedTime", "createdAt", "updatedAt"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": { "$ref": "#/entities/UserProfile" },
+      "description": "User profiles keyed by Firebase Auth UID"
+    },
+    "/users/{userId}/memberships/{listCode}": {
+      "schema": { "$ref": "#/entities/UserListMembership" },
+      "description": "Lists joined by the user with custom user-defined names"
+    },
+    "/lists/{listCode}": {
+      "schema": { "$ref": "#/entities/SharedList" },
+      "description": "Shared checklists keyed by 6-digit invite code"
+    },
+    "/lists/{listCode}/items/{itemId}": {
+      "schema": { "$ref": "#/entities/ChecklistItem" },
+      "description": "Items belonging to a shared checklist"
+    }
+  }
+}

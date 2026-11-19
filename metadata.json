@@ -1,0 +1,6 @@
+{
+  "name": "Wspólna Lista",
+  "description": "Senior-friendly shared checklist between caregiver and senior with alarm-style call reminders",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

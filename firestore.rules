@@ -1,0 +1,160 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() >= 1 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function isValidListCode(code) {
+      return code is string && code.size() == 6 && code.matches('^[0-9]{6}$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isValidUserProfile(data) {
+      return data.name is string && data.name.size() >= 1 && data.name.size() <= 60 &&
+             isValidListCode(data.listCode) &&
+             data.role is string && data.role in ['opiekun', 'senior'] &&
+             data.createdAt is timestamp && data.createdAt <= request.time &&
+             (!('updatedAt' in data) || (data.updatedAt is timestamp && data.updatedAt <= request.time));
+    }
+
+    function isValidListMembership(data, listCode) {
+      return data.code is string && data.code == listCode &&
+             data.customName is string && data.customName.size() >= 1 && data.customName.size() <= 80 &&
+             data.joinedAt is timestamp && data.joinedAt <= request.time &&
+             data.updatedAt is timestamp && data.updatedAt <= request.time;
+    }
+
+    function isValidSharedList(data, listCode) {
+      return data.code is string && data.code == listCode &&
+             data.name is string && data.name.size() >= 1 && data.name.size() <= 100 &&
+             data.ownerUid is string && data.ownerUid.size() >= 1 && data.ownerUid.size() <= 128 &&
+             data.createdAt is timestamp && data.createdAt <= request.time;
+    }
+
+    function isValidChecklistItem(data, listCode) {
+      return data.listCode is string && data.listCode == listCode &&
+             data.text is string && data.text.size() >= 1 && data.text.size() <= 500 &&
+             data.senderUid is string && data.senderUid.size() >= 1 && data.senderUid.size() <= 128 &&
+             data.senderName is string && data.senderName.size() >= 1 && data.senderName.size() <= 60 &&
+             data.deliveryMode is int && data.deliveryMode >= 0 && data.deliveryMode <= 2 &&
+             data.scheduledTime is int && data.scheduledTime >= 0 &&
+             data.status is string && data.status in ['pending', 'notified', 'scheduled', 'ringing', 'answered', 'rejected', 'completed', 'pinned', 'cancelled'] &&
+             data.reminderAcknowledgedTime is string && data.reminderAcknowledgedTime.size() <= 20 &&
+             data.dueDate is string && data.dueDate.size() <= 10 &&
+             data.isDaily is bool &&
+             (!('alertByUid' in data) || (data.alertByUid is string && data.alertByUid.size() <= 128)) &&
+             (!('alertByName' in data) || (data.alertByName is string && data.alertByName.size() <= 60)) &&
+             data.createdAt is timestamp && data.createdAt <= request.time &&
+             data.updatedAt is timestamp && data.updatedAt <= request.time;
+    }
+
+    match /users/{userId} {
+      allow get: if isSignedIn() && isValidId(userId) && request.auth.uid == userId;
+      allow list: if false;
+
+      allow create: if isSignedIn() &&
+                       isValidId(userId) &&
+                       request.auth.uid == userId &&
+                       incoming().keys().hasAll(['name', 'listCode', 'role', 'createdAt']) &&
+                       incoming().keys().hasOnly(['name', 'listCode', 'role', 'createdAt', 'updatedAt']) &&
+                       isValidUserProfile(incoming());
+
+      allow update: if isSignedIn() &&
+                       isValidId(userId) &&
+                       request.auth.uid == userId &&
+                       incoming().createdAt == existing().createdAt &&
+                       isValidUserProfile(incoming()) &&
+                       incoming().diff(existing()).affectedKeys().hasOnly(['name', 'listCode', 'role', 'updatedAt']);
+
+      allow delete: if isSignedIn() && isValidId(userId) && request.auth.uid == userId;
+
+      match /memberships/{listCode} {
+        allow get: if isSignedIn() && isValidId(userId) && isValidListCode(listCode) && request.auth.uid == userId;
+        allow list: if isSignedIn() && isValidId(userId) && request.auth.uid == userId;
+
+        allow create: if isSignedIn() &&
+                         isValidId(userId) &&
+                         isValidListCode(listCode) &&
+                         request.auth.uid == userId &&
+                         incoming().keys().hasAll(['code', 'customName', 'joinedAt', 'updatedAt']) &&
+                         incoming().keys().hasOnly(['code', 'customName', 'joinedAt', 'updatedAt']) &&
+                         isValidListMembership(incoming(), listCode);
+
+        allow update: if isSignedIn() &&
+                         isValidId(userId) &&
+                         isValidListCode(listCode) &&
+                         request.auth.uid == userId &&
+                         incoming().code == existing().code &&
+                         incoming().joinedAt == existing().joinedAt &&
+                         isValidListMembership(incoming(), listCode) &&
+                         incoming().diff(existing()).affectedKeys().hasOnly(['customName', 'updatedAt']);
+
+        allow delete: if isSignedIn() && isValidId(userId) && isValidListCode(listCode) && request.auth.uid == userId;
+      }
+    }
+
+    match /lists/{listCode} {
+      allow get: if isSignedIn() && isValidListCode(listCode);
+      allow list: if false;
+
+      allow create: if isSignedIn() &&
+                       isValidListCode(listCode) &&
+                       incoming().ownerUid == request.auth.uid &&
+                       incoming().keys().hasAll(['code', 'name', 'ownerUid', 'createdAt']) &&
+                       incoming().keys().hasOnly(['code', 'name', 'ownerUid', 'createdAt']) &&
+                       isValidSharedList(incoming(), listCode);
+
+      allow update: if isSignedIn() &&
+                       isValidListCode(listCode) &&
+                       existing().ownerUid == request.auth.uid &&
+                       incoming().ownerUid == existing().ownerUid &&
+                       incoming().code == existing().code &&
+                       incoming().createdAt == existing().createdAt &&
+                       isValidSharedList(incoming(), listCode) &&
+                       incoming().diff(existing()).affectedKeys().hasOnly(['name']);
+
+      allow delete: if isSignedIn() && isValidListCode(listCode) && existing().ownerUid == request.auth.uid;
+
+      match /items/{itemId} {
+        allow get: if isSignedIn() && isValidListCode(listCode) && isValidId(itemId);
+        allow list: if isSignedIn() && isValidListCode(listCode);
+
+        allow create: if isSignedIn() &&
+                         isValidListCode(listCode) &&
+                         isValidId(itemId) &&
+                         incoming().senderUid == request.auth.uid &&
+                         incoming().keys().hasAll(['listCode', 'text', 'senderUid', 'senderName', 'deliveryMode', 'scheduledTime', 'status', 'reminderAcknowledgedTime', 'dueDate', 'isDaily', 'createdAt', 'updatedAt']) &&
+                         incoming().keys().hasOnly(['listCode', 'text', 'senderUid', 'senderName', 'deliveryMode', 'scheduledTime', 'status', 'reminderAcknowledgedTime', 'dueDate', 'isDaily', 'alertByUid', 'alertByName', 'createdAt', 'updatedAt']) &&
+                         isValidChecklistItem(incoming(), listCode);
+
+        allow update: if isSignedIn() &&
+                         isValidListCode(listCode) &&
+                         isValidId(itemId) &&
+                         incoming().senderUid == existing().senderUid &&
+                         incoming().listCode == existing().listCode &&
+                         incoming().createdAt == existing().createdAt &&
+                         isValidChecklistItem(incoming(), listCode) &&
+                         incoming().diff(existing()).affectedKeys().hasOnly(['deliveryMode', 'scheduledTime', 'status', 'reminderAcknowledgedTime', 'alertByUid', 'alertByName', 'updatedAt', 'text']);
+
+        allow delete: if isSignedIn() && isValidListCode(listCode) && isValidId(itemId);
+      }
+    }
+  }
+}
