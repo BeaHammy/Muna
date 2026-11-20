@@ -37,6 +37,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.example.data.AppSettings
+import com.example.data.AppStrings
 import com.example.data.ChecklistItem
 import com.example.data.ChecklistRepository
 import com.example.data.UserProfile
@@ -132,19 +134,22 @@ fun MainChecklistScreen(
         )
     }
 
-    val todayStr = remember { SimpleDateFormat("yyyy-MM-dd", Locale("pl", "PL")).format(Date()) }
+    val currentLang = AppSettings.getLanguage(context)
+    val locale = if (currentLang == "en") Locale.US else Locale("pl", "PL")
+    val todayStr = remember(locale) { SimpleDateFormat("yyyy-MM-dd", locale).format(Date()) }
     var selectedDate by remember { mutableStateOf(todayStr) }
 
-    val formattedSelectedDateText = remember(selectedDate, todayStr) {
+    val formattedSelectedDateText = remember(selectedDate, todayStr, locale) {
         try {
-            val format = SimpleDateFormat("yyyy-MM-dd", Locale("pl", "PL"))
+            val format = SimpleDateFormat("yyyy-MM-dd", locale)
             val dateObj = format.parse(selectedDate) ?: Date()
-            val dayFormat = SimpleDateFormat("EEEE, d MMMM", Locale("pl", "PL"))
+            val dayFormat = SimpleDateFormat("EEEE, d MMMM", locale)
             val dayStr = dayFormat.format(dateObj)
+            val todayWord = AppStrings.get(context, "today")
             if (selectedDate == todayStr) {
-                "Dzisiaj ($dayStr)"
+                "$todayWord ($dayStr)"
             } else {
-                dayStr.replaceFirstChar { if (it.isLowerCase()) it.titlecase(Locale("pl", "PL")) else it.toString() }
+                dayStr.replaceFirstChar { if (it.isLowerCase()) it.titlecase(locale) else it.toString() }
             }
         } catch (_: Exception) {
             selectedDate
@@ -202,13 +207,13 @@ fun MainChecklistScreen(
                             Spacer(modifier = Modifier.width(6.dp))
                             Icon(
                                 imageVector = Icons.AutoMirrored.Filled.List,
-                                contentDescription = "Zmień listę",
+                                contentDescription = AppStrings.get(context, "change_list"),
                                 tint = PrimaryBlue,
                                 modifier = Modifier.size(20.dp)
                             )
                         }
                         Text(
-                            text = "Kod: ${userProfile.listCode} • ${userProfile.name} (dotknij, aby zmienić listę)",
+                            text = "${AppStrings.get(context, "code")}${userProfile.listCode} • ${userProfile.name} (${AppStrings.get(context, "tap_to_change_list")})",
                             fontSize = 13.sp,
                             fontWeight = FontWeight.Medium,
                             color = InkSecondary,
@@ -226,12 +231,12 @@ fun MainChecklistScreen(
                     ) {
                         Icon(
                             imageVector = Icons.Default.Settings,
-                            contentDescription = "Ustawienia",
+                            contentDescription = AppStrings.get(context, "settings"),
                             tint = PrimaryBlue,
                             modifier = Modifier.size(22.dp)
                         )
                         Spacer(modifier = Modifier.width(4.dp))
-                        Text("Ustawienia", fontSize = 15.sp, fontWeight = FontWeight.Bold, color = PrimaryBlue)
+                        Text(AppStrings.get(context, "settings"), fontSize = 15.sp, fontWeight = FontWeight.Bold, color = PrimaryBlue)
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -258,7 +263,7 @@ fun MainChecklistScreen(
             ) {
                 Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(28.dp))
                 Spacer(modifier = Modifier.width(8.dp))
-                Text("DODAJ ZADANIE", fontSize = 20.sp, fontWeight = FontWeight.Bold)
+                Text(AppStrings.get(context, "add_task"), fontSize = 20.sp, fontWeight = FontWeight.Bold)
             }
         },
         floatingActionButtonPosition = FabPosition.Center
@@ -291,7 +296,7 @@ fun MainChecklistScreen(
                     ) {
                         Column(modifier = Modifier.weight(1f)) {
                             Text(
-                                text = "WYBRANA DATA",
+                                text = AppStrings.get(context, "selected_date"),
                                 fontSize = 13.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = InkSecondary
@@ -325,7 +330,7 @@ fun MainChecklistScreen(
                                 modifier = Modifier.size(20.dp)
                             )
                             Spacer(modifier = Modifier.width(6.dp))
-                            Text("Kalendarz", fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                            Text(AppStrings.get(context, "calendar"), fontSize = 16.sp, fontWeight = FontWeight.Bold)
                         }
                     }
 
@@ -348,7 +353,7 @@ fun MainChecklistScreen(
                                 modifier = Modifier.size(20.dp)
                             )
                             Spacer(modifier = Modifier.width(8.dp))
-                            Text("WRÓĆ DO DZISIAJ", fontSize = 17.sp, fontWeight = FontWeight.Bold)
+                            Text(AppStrings.get(context, "return_to_today"), fontSize = 17.sp, fontWeight = FontWeight.Bold)
                         }
                     }
                 }
@@ -362,7 +367,7 @@ fun MainChecklistScreen(
                 if (streamError != null && filteredItemList.isEmpty()) {
                     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                         Text(
-                            text = "Błąd synchronizacji listy:\n$streamError",
+                            text = "${AppStrings.get(context, "sync_error")}$streamError",
                             fontSize = 18.sp,
                             color = DangerRed,
                             textAlign = TextAlign.Center,
@@ -372,7 +377,7 @@ fun MainChecklistScreen(
                 } else if (filteredItemList.isEmpty()) {
                     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                         Text(
-                            text = "Brak zadań na wybraną datę.\nDodaj pierwsze zadanie przyciskiem poniżej.",
+                            text = AppStrings.get(context, "no_tasks_date"),
                             fontSize = 20.sp,
                             lineHeight = 28.sp,
                             fontWeight = FontWeight.Medium,
@@ -715,7 +720,7 @@ fun CallTimingDialog(
                 verticalArrangement = Arrangement.spacedBy(14.dp)
             ) {
                 Text(
-                    text = "Zadzwoń z przypomnieniem",
+                    text = AppStrings.get(context, "call_timing_title"),
                     style = MaterialTheme.typography.titleLarge,
                     color = OnPrimaryContainer
                 )
@@ -740,7 +745,7 @@ fun CallTimingDialog(
                 ) {
                     Icon(Icons.Default.Call, contentDescription = null, modifier = Modifier.size(24.dp))
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text("Zadzwoń TERAZ", fontSize = 19.sp, fontWeight = FontWeight.Bold)
+                    Text(AppStrings.get(context, "call_now_btn"), fontSize = 19.sp, fontWeight = FontWeight.Bold)
                 }
 
                 Button(
@@ -757,7 +762,7 @@ fun CallTimingDialog(
                 ) {
                     Icon(Icons.Default.AccessTime, contentDescription = null, modifier = Modifier.size(24.dp))
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text("O konkretnej godzinie", fontSize = 19.sp, fontWeight = FontWeight.Bold)
+                    Text(AppStrings.get(context, "call_scheduled_btn"), fontSize = 19.sp, fontWeight = FontWeight.Bold)
                 }
 
                 TextButton(
@@ -766,7 +771,7 @@ fun CallTimingDialog(
                         .align(Alignment.End)
                         .defaultMinSize(minHeight = 48.dp)
                 ) {
-                    Text("Anuluj", fontSize = 18.sp, fontWeight = FontWeight.SemiBold, color = InkSecondary)
+                    Text(AppStrings.get(context, "cancel"), fontSize = 18.sp, fontWeight = FontWeight.SemiBold, color = InkSecondary)
                 }
             }
         }
@@ -784,12 +789,16 @@ fun ChecklistItemCard(
     onCancelCall: () -> Unit,
     onDeleteClick: () -> Unit
 ) {
+    val context = LocalContext.current
+    val currentLang = AppSettings.getLanguage(context)
+    val locale = if (currentLang == "en") Locale.US else Locale("pl", "PL")
+
     val cardBg = if (isMine) MineCardBg else PartnerCardBg
     val borderColor = if (isMine) MineCardBorder else PartnerCardBorder
     val badgeBg = if (isMine) MineBadgeBg else PartnerBadgeBg
-    val headerBadge = if (isMine) "MOJE" else "OD: ${item.senderName.uppercase()}"
+    val headerBadge = if (isMine) AppStrings.get(context, "mine_badge") else "${AppStrings.get(context, "partner_badge_prefix")}${item.senderName.uppercase()}"
 
-    val timeFormat = SimpleDateFormat("HH:mm", Locale("pl", "PL"))
+    val timeFormat = SimpleDateFormat("HH:mm", locale)
     val scheduledStr = if (item.scheduledTime > 0) timeFormat.format(Date(item.scheduledTime)) else ""
     val createdStr = item.createdAt?.toDate()?.let { timeFormat.format(it) } ?: ""
     val isCompleted = item.status == "completed"
@@ -836,30 +845,30 @@ fun ChecklistItemCard(
                         "completed" -> {
                             Icon(Icons.Default.Check, contentDescription = null, tint = SuccessGreen)
                             Spacer(modifier = Modifier.width(4.dp))
-                            Text("Wykonane", color = SuccessGreen, fontWeight = FontWeight.Bold, fontSize = 15.sp)
+                            Text(AppStrings.get(context, "completed"), color = SuccessGreen, fontWeight = FontWeight.Bold, fontSize = 15.sp)
                         }
                         "notified" -> {
                             Text(
-                                text = "Wysłano powiadomienie",
+                                text = AppStrings.get(context, "status_notified"),
                                 color = OnPrimaryContainer,
                                 fontWeight = FontWeight.Bold,
                                 fontSize = 14.sp
                             )
                         }
                         "answered" -> {
-                            Text("Odebrano o ${item.reminderAcknowledgedTime}", color = SuccessGreen, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                            Text("${AppStrings.get(context, "status_answered")}${item.reminderAcknowledgedTime}", color = SuccessGreen, fontWeight = FontWeight.Bold, fontSize = 14.sp)
                         }
                         "rejected" -> {
-                            Text("Odrzucono o ${item.reminderAcknowledgedTime}", color = DangerRed, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                            Text("${AppStrings.get(context, "status_rejected")}${item.reminderAcknowledgedTime}", color = DangerRed, fontWeight = FontWeight.Bold, fontSize = 14.sp)
                         }
                         "pinned" -> {
-                            Text("Przypomniano o ${item.reminderAcknowledgedTime}", color = WarningInk, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                            Text("${AppStrings.get(context, "status_pinned")}${item.reminderAcknowledgedTime}", color = WarningInk, fontWeight = FontWeight.Bold, fontSize = 14.sp)
                         }
                         "scheduled" -> {
-                            Text("Zaplanowano na $scheduledStr", color = OnPrimaryContainer, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                            Text("${AppStrings.get(context, "status_scheduled")}$scheduledStr", color = OnPrimaryContainer, fontWeight = FontWeight.Bold, fontSize = 14.sp)
                         }
                         "ringing" -> {
-                            Text("Dzwonię (co 5 min)...", color = DangerRed, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                            Text(AppStrings.get(context, "status_ringing"), color = DangerRed, fontWeight = FontWeight.Bold, fontSize = 14.sp)
                         }
                     }
 
@@ -871,7 +880,7 @@ fun ChecklistItemCard(
                     ) {
                         Icon(Icons.Default.Delete, contentDescription = null, modifier = Modifier.size(20.dp))
                         Spacer(modifier = Modifier.width(4.dp))
-                        Text("Usuń", fontSize = 15.sp, fontWeight = FontWeight.Bold)
+                        Text(AppStrings.get(context, "delete"), fontSize = 15.sp, fontWeight = FontWeight.Bold)
                     }
                 }
             }
@@ -903,14 +912,14 @@ fun ChecklistItemCard(
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             if (isCompleted) {
                                 Text(
-                                    text = "Wykonano: $completedTimeStr",
+                                    text = "${AppStrings.get(context, "done")}$completedTimeStr",
                                     fontSize = 13.sp,
                                     color = SuccessGreen,
                                     fontWeight = FontWeight.Medium
                                 )
                             } else if (createdStr.isNotBlank()) {
                                 Text(
-                                    text = "Dodano: $createdStr",
+                                    text = "${AppStrings.get(context, "added")}$createdStr",
                                     fontSize = 13.sp,
                                     color = InkSecondary,
                                     fontWeight = FontWeight.Medium
@@ -921,7 +930,7 @@ fun ChecklistItemCard(
                                     Text(text = " • ", fontSize = 13.sp, color = InkSecondary)
                                 }
                                 Text(
-                                    text = "Codzienne",
+                                    text = AppStrings.get(context, "daily"),
                                     fontSize = 13.sp,
                                     color = PrimaryBlue,
                                     fontWeight = FontWeight.Bold
@@ -956,7 +965,7 @@ fun ChecklistItemCard(
                         )
                         Spacer(modifier = Modifier.width(6.dp))
                         Text(
-                            text = "Powiadomienie",
+                            text = AppStrings.get(context, "notification"),
                             fontSize = 15.sp,
                             fontWeight = FontWeight.Bold,
                             color = PrimaryBlue,
@@ -984,7 +993,7 @@ fun ChecklistItemCard(
                         )
                         Spacer(modifier = Modifier.width(6.dp))
                         Text(
-                            text = if (isRingingOrScheduled) "Dzwoni..." else "Zadzwoń",
+                            text = if (isRingingOrScheduled) AppStrings.get(context, "calling_state") else AppStrings.get(context, "call"),
                             fontSize = 15.sp,
                             fontWeight = FontWeight.Bold,
                             maxLines = 1

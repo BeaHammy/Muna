@@ -15,6 +15,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
@@ -22,6 +23,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
+import com.example.data.AppStrings
 import com.example.data.UserListMembership
 import com.example.ui.theme.*
 import kotlinx.coroutines.launch
@@ -37,6 +39,7 @@ fun ManageListsDialog(
     onLeaveList: suspend (String) -> Result<Unit>,
     onDismiss: () -> Unit
 ) {
+    val context = LocalContext.current
     val scope = rememberCoroutineScope()
     var isBusy by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
@@ -72,12 +75,12 @@ fun ManageListsDialog(
                 verticalArrangement = Arrangement.spacedBy(14.dp)
             ) {
                 Text(
-                    text = "Moje listy",
+                    text = AppStrings.get(context, "my_lists"),
                     style = MaterialTheme.typography.headlineMedium,
                     color = OnPrimaryContainer
                 )
                 Text(
-                    text = "Zarządzaj swoimi listami.",
+                    text = AppStrings.get(context, "manage_lists_desc"),
                     fontSize = 15.sp,
                     lineHeight = 21.sp,
                     color = InkSecondary
@@ -150,7 +153,7 @@ fun ManageListsDialog(
                                                 )
                                                 Spacer(modifier = Modifier.width(4.dp))
                                                 Text(
-                                                    text = "AKTYWNA",
+                                                    text = AppStrings.get(context, "active"),
                                                     fontSize = 12.sp,
                                                     fontWeight = FontWeight.Bold
                                                 )
@@ -160,7 +163,7 @@ fun ManageListsDialog(
                                 }
 
                                 Text(
-                                    text = "Kod: ${membership.code}",
+                                    text = "${AppStrings.get(context, "code")}${membership.code}",
                                     fontSize = 15.sp,
                                     fontWeight = FontWeight.SemiBold,
                                     color = InkSecondary
@@ -197,7 +200,7 @@ fun ManageListsDialog(
                                                 .weight(1f)
                                                 .defaultMinSize(minHeight = 48.dp)
                                         ) {
-                                            Text("Otwórz", fontSize = 15.sp, fontWeight = FontWeight.Bold)
+                                            Text(AppStrings.get(context, "open"), fontSize = 15.sp, fontWeight = FontWeight.Bold)
                                         }
                                     }
 
@@ -218,7 +221,7 @@ fun ManageListsDialog(
                                         )
                                         Spacer(modifier = Modifier.width(6.dp))
                                         Text(
-                                            text = "Zmień nazwę",
+                                            text = AppStrings.get(context, "rename"),
                                             fontSize = 15.sp,
                                             fontWeight = FontWeight.Bold,
                                             color = PrimaryBlue,
@@ -235,7 +238,7 @@ fun ManageListsDialog(
                                             modifier = Modifier.defaultMinSize(minHeight = 48.dp)
                                         ) {
                                             Text(
-                                                text = "Opuść",
+                                                text = AppStrings.get(context, "leave"),
                                                 fontSize = 15.sp,
                                                 fontWeight = FontWeight.Bold,
                                                 color = DangerRed
@@ -265,7 +268,7 @@ fun ManageListsDialog(
                 ) {
                     Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(22.dp))
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text("Nowa lista", fontSize = 18.sp, fontWeight = FontWeight.Bold)
+                    Text(AppStrings.get(context, "new_list"), fontSize = 18.sp, fontWeight = FontWeight.Bold)
                 }
 
                 Button(
@@ -283,7 +286,7 @@ fun ManageListsDialog(
                 ) {
                     Icon(Icons.Default.GroupAdd, contentDescription = null, modifier = Modifier.size(22.dp))
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text("Dołącz z kodem", fontSize = 18.sp, fontWeight = FontWeight.Bold)
+                    Text(AppStrings.get(context, "join_with_code"), fontSize = 18.sp, fontWeight = FontWeight.Bold)
                 }
 
                 TextButton(
@@ -293,7 +296,7 @@ fun ManageListsDialog(
                         .align(Alignment.End)
                         .defaultMinSize(minHeight = 48.dp)
                 ) {
-                    Text("Zamknij", fontSize = 18.sp, fontWeight = FontWeight.SemiBold, color = InkSecondary)
+                    Text(AppStrings.get(context, "cancel"), fontSize = 18.sp, fontWeight = FontWeight.SemiBold, color = InkSecondary)
                 }
             }
         }
@@ -328,11 +331,11 @@ fun ManageListsDialog(
             titleContentColor = InkPrimary,
             textContentColor = InkPrimary,
             title = {
-                Text("Opuszczenie listy", fontSize = 21.sp, fontWeight = FontWeight.Bold, color = InkPrimary)
+                Text(AppStrings.get(context, "leave_list_title"), fontSize = 21.sp, fontWeight = FontWeight.Bold, color = InkPrimary)
             },
             text = {
                 Text(
-                    text = "Czy na pewno chcesz opuścić listę „${target.customName.ifBlank { target.code }}”?",
+                    text = "${AppStrings.get(context, "leave_list_confirm")} „${target.customName.ifBlank { target.code }}”?",
                     fontSize = 18.sp,
                     color = InkPrimary
                 )
@@ -357,7 +360,7 @@ fun ManageListsDialog(
                     ),
                     modifier = Modifier.defaultMinSize(minHeight = 48.dp)
                 ) {
-                    Text("Opuść listę", fontSize = 17.sp, fontWeight = FontWeight.Bold)
+                    Text(AppStrings.get(context, "leave"), fontSize = 17.sp, fontWeight = FontWeight.Bold)
                 }
             },
             dismissButton = {
@@ -365,7 +368,7 @@ fun ManageListsDialog(
                     onClick = { leaveTarget = null },
                     modifier = Modifier.defaultMinSize(minHeight = 48.dp)
                 ) {
-                    Text("Anuluj", fontSize = 17.sp, fontWeight = FontWeight.SemiBold, color = InkSecondary)
+                    Text(AppStrings.get(context, "cancel"), fontSize = 17.sp, fontWeight = FontWeight.SemiBold, color = InkSecondary)
                 }
             }
         )
@@ -422,6 +425,7 @@ private fun RenameListSubDialog(
     onDismiss: () -> Unit,
     onConfirm: (String) -> Unit
 ) {
+    val context = LocalContext.current
     var nameInput by remember { mutableStateOf(initialName) }
     var validationError by remember { mutableStateOf<String?>(null) }
 
@@ -447,8 +451,8 @@ private fun RenameListSubDialog(
                 modifier = Modifier.padding(22.dp),
                 verticalArrangement = Arrangement.spacedBy(14.dp)
             ) {
-                Text("Zmień nazwę listy", style = MaterialTheme.typography.titleLarge, color = OnPrimaryContainer)
-                Text("Kod listy: $listCode", fontSize = 15.sp, color = InkSecondary)
+                Text(AppStrings.get(context, "rename_list_title"), style = MaterialTheme.typography.titleLarge, color = OnPrimaryContainer)
+                Text("${AppStrings.get(context, "code")}$listCode", fontSize = 15.sp, color = InkSecondary)
 
                 OutlinedTextField(
                     value = nameInput,
@@ -456,7 +460,7 @@ private fun RenameListSubDialog(
                         nameInput = it
                         validationError = null
                     },
-                    label = { Text("Własna nazwa listy", fontSize = 16.sp) },
+                    label = { Text(AppStrings.get(context, "list_name_label"), fontSize = 16.sp) },
                     textStyle = MaterialTheme.typography.bodyMedium.copy(color = InkPrimary),
                     colors = textFieldColors,
                     singleLine = true,
@@ -475,13 +479,13 @@ private fun RenameListSubDialog(
                         onClick = onDismiss,
                         modifier = Modifier.defaultMinSize(minHeight = 48.dp)
                     ) {
-                        Text("Anuluj", fontSize = 17.sp, color = InkSecondary)
+                        Text(AppStrings.get(context, "cancel"), fontSize = 17.sp, color = InkSecondary)
                     }
                     Spacer(modifier = Modifier.width(8.dp))
                     Button(
                         onClick = {
                             if (nameInput.isBlank()) {
-                                validationError = "Wpisz nazwę listy."
+                                validationError = AppStrings.get(context, "error_empty_name")
                             } else {
                                 onConfirm(nameInput.trim())
                             }
@@ -489,7 +493,7 @@ private fun RenameListSubDialog(
                         colors = ButtonDefaults.buttonColors(containerColor = PrimaryBlue, contentColor = OnPrimaryWhite),
                         modifier = Modifier.defaultMinSize(minHeight = 48.dp)
                     ) {
-                        Text("Zapisz", fontSize = 17.sp, fontWeight = FontWeight.Bold)
+                        Text(AppStrings.get(context, "save"), fontSize = 17.sp, fontWeight = FontWeight.Bold)
                     }
                 }
             }
@@ -502,6 +506,7 @@ private fun CreateNamedListSubDialog(
     onDismiss: () -> Unit,
     onConfirm: (String) -> Unit
 ) {
+    val context = LocalContext.current
     var nameInput by remember { mutableStateOf("") }
 
     val textFieldColors = OutlinedTextFieldDefaults.colors(
@@ -526,9 +531,9 @@ private fun CreateNamedListSubDialog(
                 modifier = Modifier.padding(22.dp),
                 verticalArrangement = Arrangement.spacedBy(14.dp)
             ) {
-                Text("Nowa wspólna lista", style = MaterialTheme.typography.titleLarge, color = OnPrimaryContainer)
+                Text(AppStrings.get(context, "new_shared_list"), style = MaterialTheme.typography.titleLarge, color = OnPrimaryContainer)
                 Text(
-                    text = "Wygenerujemy 6-cyfrowy kod, który możesz podać bliskiej osobie.",
+                    text = AppStrings.get(context, "create_list_desc"),
                     fontSize = 15.sp,
                     color = InkSecondary
                 )
@@ -536,7 +541,7 @@ private fun CreateNamedListSubDialog(
                 OutlinedTextField(
                     value = nameInput,
                     onValueChange = { nameInput = it },
-                    label = { Text("Nazwa listy (np. Zakupy, Leki)", fontSize = 16.sp) },
+                    label = { Text(AppStrings.get(context, "list_name_hint"), fontSize = 16.sp) },
                     textStyle = MaterialTheme.typography.bodyMedium.copy(color = InkPrimary),
                     colors = textFieldColors,
                     singleLine = true,
@@ -551,7 +556,7 @@ private fun CreateNamedListSubDialog(
                         onClick = onDismiss,
                         modifier = Modifier.defaultMinSize(minHeight = 48.dp)
                     ) {
-                        Text("Anuluj", fontSize = 17.sp, color = InkSecondary)
+                        Text(AppStrings.get(context, "cancel"), fontSize = 17.sp, color = InkSecondary)
                     }
                     Spacer(modifier = Modifier.width(8.dp))
                     Button(
@@ -559,7 +564,7 @@ private fun CreateNamedListSubDialog(
                         colors = ButtonDefaults.buttonColors(containerColor = SuccessGreen, contentColor = OnPrimaryWhite),
                         modifier = Modifier.defaultMinSize(minHeight = 48.dp)
                     ) {
-                        Text("Utwórz", fontSize = 17.sp, fontWeight = FontWeight.Bold)
+                        Text(AppStrings.get(context, "create"), fontSize = 17.sp, fontWeight = FontWeight.Bold)
                     }
                 }
             }
@@ -572,6 +577,7 @@ private fun JoinNamedListSubDialog(
     onDismiss: () -> Unit,
     onConfirm: (String, String) -> Unit
 ) {
+    val context = LocalContext.current
     var codeInput by remember { mutableStateOf("") }
     var customNameInput by remember { mutableStateOf("") }
     var validationError by remember { mutableStateOf<String?>(null) }
@@ -598,7 +604,7 @@ private fun JoinNamedListSubDialog(
                 modifier = Modifier.padding(22.dp),
                 verticalArrangement = Arrangement.spacedBy(14.dp)
             ) {
-                Text("Dołącz do listy", style = MaterialTheme.typography.titleLarge, color = OnPrimaryContainer)
+                Text(AppStrings.get(context, "join_list"), style = MaterialTheme.typography.titleLarge, color = OnPrimaryContainer)
 
                 OutlinedTextField(
                     value = codeInput,
@@ -606,7 +612,7 @@ private fun JoinNamedListSubDialog(
                         codeInput = it.filter { ch -> ch.isDigit() }.take(6)
                         validationError = null
                     },
-                    label = { Text("6-cyfrowy kod listy", fontSize = 16.sp) },
+                    label = { Text(AppStrings.get(context, "6_digit_code"), fontSize = 16.sp) },
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                     textStyle = MaterialTheme.typography.bodyMedium.copy(color = InkPrimary),
                     colors = textFieldColors,
@@ -617,7 +623,7 @@ private fun JoinNamedListSubDialog(
                 OutlinedTextField(
                     value = customNameInput,
                     onValueChange = { customNameInput = it },
-                    label = { Text("Twoja nazwa tej listy (opcjonalnie)", fontSize = 16.sp) },
+                    label = { Text(AppStrings.get(context, "optional_name"), fontSize = 16.sp) },
                     textStyle = MaterialTheme.typography.bodyMedium.copy(color = InkPrimary),
                     colors = textFieldColors,
                     singleLine = true,
@@ -636,14 +642,14 @@ private fun JoinNamedListSubDialog(
                         onClick = onDismiss,
                         modifier = Modifier.defaultMinSize(minHeight = 48.dp)
                     ) {
-                        Text("Anuluj", fontSize = 17.sp, color = InkSecondary)
+                        Text(AppStrings.get(context, "cancel"), fontSize = 17.sp, color = InkSecondary)
                     }
                     Spacer(modifier = Modifier.width(8.dp))
                     Button(
                         onClick = {
                             val cleanCode = codeInput.trim()
                             if (!cleanCode.matches(Regex("^[0-9]{6}$"))) {
-                                validationError = "Wpisz dokładnie 6 cyfr."
+                                validationError = AppStrings.get(context, "error_6_digits")
                             } else {
                                 onConfirm(cleanCode, customNameInput.trim())
                             }
@@ -651,7 +657,7 @@ private fun JoinNamedListSubDialog(
                         colors = ButtonDefaults.buttonColors(containerColor = PrimaryBlue, contentColor = OnPrimaryWhite),
                         modifier = Modifier.defaultMinSize(minHeight = 48.dp)
                     ) {
-                        Text("Dołącz", fontSize = 17.sp, fontWeight = FontWeight.Bold)
+                        Text(AppStrings.get(context, "join"), fontSize = 17.sp, fontWeight = FontWeight.Bold)
                     }
                 }
             }

@@ -2,45 +2,45 @@ package com.example.ui.theme
 
 import androidx.compose.ui.graphics.Color
 
-// Soft, senior-friendly high-legibility palette (avoids harsh pure black/white glare)
-val WarmBackground = Color(0xFFF6F7F9)
+// Modern 2026 Design Palette: Warm Minimal & High Legibility
+val WarmBackground = Color(0xFFF8FAFC)
 val CardSurface = Color(0xFFFFFFFF)
-val TopBarSurface = Color(0xFFEAF2FB)
+val TopBarSurface = Color(0xFFF1F5F9)
 
-val InkPrimary = Color(0xFF1A222D)
+val InkPrimary = Color(0xFF0F172A)
 val InkSecondary = Color(0xFF475569)
-val BorderNeutral = Color(0xFFCBD5E1)
+val BorderNeutral = Color(0xFFE2E8F0)
 
-val PrimaryBlue = Color(0xFF1D4ED8)
+val PrimaryBlue = Color(0xFF4F46E5) // Modern Indigo
 val OnPrimaryWhite = Color(0xFFFFFFFF)
-val PrimaryContainer = Color(0xFFDBEAFE)
-val OnPrimaryContainer = Color(0xFF1E3A8A)
+val PrimaryContainer = Color(0xFFEEF2FF)
+val OnPrimaryContainer = Color(0xFF3730A3)
 
-// Caregiver / Partner card colors (warm amber tint)
-val PartnerCardBg = Color(0xFFFFF8E7)
-val PartnerCardBorder = Color(0xFFE2BA6B)
-val PartnerBadgeBg = Color(0xFFB45309)
+// Caregiver / Partner card colors (warm amber / sand tint)
+val PartnerCardBg = Color(0xFFFEF3C7)
+val PartnerCardBorder = Color(0xFFFCD34D)
+val PartnerBadgeBg = Color(0xFFD97706)
 
-// Personal card colors (soft cool tint)
-val MineCardBg = Color(0xFFF0F4F8)
-val MineCardBorder = Color(0xFFB6C8DB)
-val MineBadgeBg = Color(0xFF1D4ED8)
+// Personal card colors (soft modern slate/indigo tint)
+val MineCardBg = Color(0xFFF1F5F9)
+val MineCardBorder = Color(0xFFCBD5E1)
+val MineBadgeBg = Color(0xFF4F46E5)
 
 // Semantic status & action colors
-val SuccessGreen = Color(0xFF1B7A3D)
-val DangerRed = Color(0xFFB91C1C)
-val InfoTeal = Color(0xFF0E7490)
+val SuccessGreen = Color(0xFF059669)
+val DangerRed = Color(0xFFDC2626)
+val InfoTeal = Color(0xFF0891B2)
 val NeutralTabBg = Color(0xFFE2E8F0)
 
 // Incoming Call Alarm colors
-val WarningSurface = Color(0xFFFFF3CD)
-val WarningBorder = Color(0xFF856404)
-val WarningInk = Color(0xFF4A3600)
-val WarningSubInk = Color(0xFF6B4E00)
+val WarningSurface = Color(0xFFFEF3C7)
+val WarningBorder = Color(0xFFF59E0B)
+val WarningInk = Color(0xFF78350F)
+val WarningSubInk = Color(0xFF92400E)
 val LeaveAmberBg = Color(0xFFFDE68A)
 
-// Dimmed mode colors (battery-saving yet legible)
-val DimmedCallBg = Color(0xFF2B2410)
-val DimmedCallCardBg = Color(0xFF3E351A)
-val DimmedCallInk = Color(0xFFFFE8A3)
-val DimmedCallBorder = Color(0xFFD97706)
+// Dimmed mode colors
+val DimmedCallBg = Color(0xFF1E1B4B)
+val DimmedCallCardBg = Color(0xFF312E81)
+val DimmedCallInk = Color(0xFFE0E7FF)
+val DimmedCallBorder = Color(0xFF6366F1)

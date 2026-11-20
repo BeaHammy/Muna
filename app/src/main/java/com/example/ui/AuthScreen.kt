@@ -24,6 +24,7 @@ import androidx.credentials.CredentialManager
 import androidx.credentials.GetCredentialRequest
 import androidx.credentials.exceptions.GetCredentialCancellationException
 import com.example.R
+import com.example.data.AppSettings
 import com.example.data.ChecklistRepository
 import com.example.data.UserProfile
 import com.example.ui.theme.*
@@ -70,8 +71,14 @@ fun AuthScreen(onAuthComplete: (UserProfile) -> Unit) {
         val currentUser = Firebase.auth.currentUser
         if (currentUser != null) {
             signedInUserId = currentUser.uid
+            val cached = AppSettings.getCachedProfile(context, currentUser.uid)
+            if (cached != null && cached.listCode.isNotBlank()) {
+                onAuthComplete(cached)
+                return@LaunchedEffect
+            }
             val profile = repository.getUserProfile(currentUser.uid)
             if (profile != null && profile.listCode.isNotBlank()) {
+                AppSettings.saveCachedProfile(context, profile)
                 onAuthComplete(profile)
             } else {
                 nameInput = currentUser.displayName ?: currentUser.email?.substringBefore("@") ?: ""
@@ -506,6 +513,7 @@ fun AuthScreen(onAuthComplete: (UserProfile) -> Unit) {
                                 val saveResult = repository.saveUserProfile(profile)
                                 if (saveResult.isSuccess) {
                                     repository.saveListMembership(finalCode, resolvedListName)
+                                    AppSettings.saveCachedProfile(context, profile)
                                     isLoading = false
                                     onAuthComplete(profile)
                                 } else {

@@ -87,7 +87,18 @@ fun AppRoot() {
             isLoadingProfile = false
         } else {
             isLoadingProfile = true
-            userProfile = repository.getUserProfile(uid)
+            val cached = com.example.data.AppSettings.getCachedProfile(context, uid)
+            if (cached != null && cached.listCode.isNotBlank()) {
+                userProfile = cached
+                isLoadingProfile = false
+            }
+            val profile = repository.getUserProfile(uid)
+            if (profile != null && profile.listCode.isNotBlank()) {
+                com.example.data.AppSettings.saveCachedProfile(context, profile)
+                userProfile = profile
+            } else if (cached == null) {
+                userProfile = profile
+            }
             isLoadingProfile = false
         }
     }
@@ -134,6 +145,7 @@ fun AppRoot() {
                         scope.launch {
                             withContext(NonCancellable) {
                                 ChecklistSyncService.stop(context)
+                                com.example.data.AppSettings.clearCachedProfile(context)
                                 Firebase.auth.signOut()
                                 userProfile = null
                             }

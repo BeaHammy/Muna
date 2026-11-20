@@ -19,6 +19,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import com.example.data.ChecklistItem
+import com.example.data.AppStrings
 import com.example.ui.theme.*
 import java.util.Calendar
 import java.util.Locale
@@ -100,13 +101,13 @@ fun AddItemDialog(
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
                 Text(
-                    text = "Nowe zadanie na liście",
+                    text = AppStrings.get(context, "new_task_title"),
                     style = MaterialTheme.typography.titleLarge,
                     color = OnPrimaryContainer
                 )
 
                 Text(
-                    text = "Wpisz treść zadania. Obie osoby zobaczą je na wspólnej liście.",
+                    text = AppStrings.get(context, "new_task_desc"),
                     fontSize = 16.sp,
                     color = InkSecondary
                 )
@@ -117,8 +118,8 @@ fun AddItemDialog(
                         textInput = it
                         if (it.isNotBlank()) showError = false
                     },
-                    label = { Text("Treść zadania", fontSize = 17.sp) },
-                    placeholder = { Text("np. Kupić mleko i leki", fontSize = 17.sp, color = InkSecondary) },
+                    label = { Text(AppStrings.get(context, "task_content_label"), fontSize = 17.sp) },
+                    placeholder = { Text(AppStrings.get(context, "task_hint"), fontSize = 17.sp, color = InkSecondary) },
                     modifier = Modifier
                         .fillMaxWidth()
                         .testTag("add_item_text_input"),
@@ -139,7 +140,7 @@ fun AddItemDialog(
                     Icon(Icons.Default.CalendarMonth, contentDescription = null, tint = PrimaryBlue, modifier = Modifier.size(22.dp))
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
-                        text = "Data: $formattedDueDateDisplay",
+                        text = "${AppStrings.get(context, "date_label")}$formattedDueDateDisplay",
                         fontSize = 16.sp,
                         fontWeight = FontWeight.Bold,
                         color = PrimaryBlue
@@ -160,7 +161,7 @@ fun AddItemDialog(
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
-                        text = "Codziennie",
+                        text = AppStrings.get(context, "daily"),
                         fontSize = 17.sp,
                         fontWeight = FontWeight.SemiBold,
                         color = InkPrimary
@@ -169,7 +170,7 @@ fun AddItemDialog(
 
                 if (showError) {
                     Text(
-                        text = "Wpisz treść zadania przed dodaniem.",
+                        text = AppStrings.get(context, "error_empty_task"),
                         color = DangerRed,
                         fontSize = 15.sp,
                         fontWeight = FontWeight.SemiBold
@@ -187,7 +188,7 @@ fun AddItemDialog(
                         onClick = onDismiss,
                         modifier = Modifier.defaultMinSize(minHeight = 52.dp)
                     ) {
-                        Text("Anuluj", fontSize = 18.sp, fontWeight = FontWeight.SemiBold, color = InkSecondary)
+                        Text(AppStrings.get(context, "cancel"), fontSize = 18.sp, fontWeight = FontWeight.SemiBold, color = InkSecondary)
                     }
                     Spacer(modifier = Modifier.width(12.dp))
                     Button(
@@ -217,7 +218,7 @@ fun AddItemDialog(
                             .defaultMinSize(minWidth = 120.dp, minHeight = 52.dp)
                             .testTag("confirm_add_item_button")
                     ) {
-                        Text("Dodaj", fontSize = 19.sp, fontWeight = FontWeight.Bold)
+                        Text(AppStrings.get(context, "add"), fontSize = 19.sp, fontWeight = FontWeight.Bold)
                     }
                 }
             }
