@@ -17,14 +17,17 @@ import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.tasks.await
+import java.util.Date
 import kotlin.random.Random
 
 class ChecklistRepository(private val db: FirebaseFirestore) {
 
     constructor(context: Context) : this(
-        FirebaseFirestore.getInstance(
-            context.applicationContext.getString(R.string.firestore_database_id)
-        )
+        FirebaseFirestore.getInstance().apply {
+            try {
+                enableNetwork()
+            } catch (_: Exception) {}
+        }
     )
 
     private val auth = Firebase.auth
@@ -64,7 +67,15 @@ class ChecklistRepository(private val db: FirebaseFirestore) {
         } catch (e: CancellationException) {
             throw e
         } catch (e: Exception) {
-            Log.e("ChecklistRepo", "Error getting user profile for users/$uid", e)
+            Log.w("ChecklistRepo", "Error getting user profile for users/$uid, trying cache", e)
+            try {
+                val cacheDoc = db.collection("users").document(uid).get(com.google.firebase.firestore.Source.CACHE).await()
+                if (cacheDoc.exists()) {
+                    val profile = cacheDoc.toObject(UserProfile::class.java)?.copy(uid = cacheDoc.id)
+                    if (profile != null) return profile
+                }
+            } catch (_: Exception) {}
+
             UserProfile(
                 uid = uid,
                 name = auth.currentUser?.displayName ?: "Użytkownik",
@@ -91,8 +102,10 @@ class ChecklistRepository(private val db: FirebaseFirestore) {
                 mapOf(
                     "code" to profile.listCode,
                     "name" to "Wspólna Lista ${profile.listCode}",
-                    "ownerUid" to profile.uid,
-                    "createdAt" to FieldValue.serverTimestamp()
+                    "ownerId" to profile.uid,
+                    "members" to listOf(profile.uid),
+                    "createdAt" to FieldValue.serverTimestamp(),
+                    "updatedAt" to FieldValue.serverTimestamp()
                 ),
                 com.google.firebase.firestore.SetOptions.merge()
             ).await()
@@ -152,15 +165,122 @@ class ChecklistRepository(private val db: FirebaseFirestore) {
             val listData = mapOf(
                 "code" to cleanCode,
                 "name" to cleanName,
-                "ownerUid" to uid,
-                "createdAt" to FieldValue.serverTimestamp()
+                "ownerId" to uid,
+                "members" to listOf(uid),
+                "createdAt" to FieldValue.serverTimestamp(),
+                "updatedAt" to FieldValue.serverTimestamp()
             )
-            db.collection("lists").document(cleanCode).set(listData).await()
+            db.collection("lists").document(cleanCode).set(listData, com.google.firebase.firestore.SetOptions.merge()).await()
             Result.success(Unit)
         } catch (e: CancellationException) {
             throw e
         } catch (e: Exception) {
             Log.e("ChecklistRepo", "Error creating list $listCode", e)
+            Result.failure(e)
+        }
+    }
+
+    suspend fun createInvite(listCode: String): Result<Pair<String, Date>> {
+        return try {
+            val uid = requireUserId()
+            val cleanCode = listCode.trim()
+            require(cleanCode.matches(Regex("^[0-9]{6}$"))) { "Invalid list code" }
+
+            val listRef = db.collection("lists").document(cleanCode)
+            val listDoc = listRef.get().await()
+            if (!listDoc.exists()) {
+                val listData = mapOf(
+                    "code" to cleanCode,
+                    "name" to "Wspólna Lista $cleanCode",
+                    "ownerId" to uid,
+                    "members" to listOf(uid),
+                    "createdAt" to FieldValue.serverTimestamp(),
+                    "updatedAt" to FieldValue.serverTimestamp()
+                )
+                listRef.set(listData, com.google.firebase.firestore.SetOptions.merge()).await()
+            } else {
+                val members = listDoc.get("members") as? List<*> ?: emptyList<Any>()
+                if (!members.contains(uid)) {
+                    listRef.update(
+                        mapOf(
+                            "members" to FieldValue.arrayUnion(uid),
+                            "updatedAt" to FieldValue.serverTimestamp()
+                        )
+                    ).await()
+                }
+            }
+
+            // Generate 8-character alphanumeric code excluding confusing characters (O, 0, I, 1)
+            val chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
+            val inviteCode = (1..8).map { chars[Random.nextInt(chars.length)] }.joinToString("")
+            val expiryDate = Date(System.currentTimeMillis() + 15 * 60 * 1000) // 15 minutes
+
+            val inviteData = mapOf(
+                "inviteCode" to inviteCode,
+                "inviteExpiresAt" to com.google.firebase.Timestamp(expiryDate),
+                "inviteUsed" to false,
+                "inviteCreatedBy" to uid,
+                "updatedAt" to FieldValue.serverTimestamp()
+            )
+
+            listRef.set(inviteData, com.google.firebase.firestore.SetOptions.merge()).await()
+            Result.success(Pair(inviteCode, expiryDate))
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            Log.e("ChecklistRepo", "Error creating invite for $listCode", e)
+            Result.failure(e)
+        }
+    }
+
+    suspend fun getListMembers(listCode: String): List<ListMemberInfo> {
+        val cleanCode = listCode.trim()
+        if (!cleanCode.matches(Regex("^[0-9]{6}$"))) return emptyList()
+        return try {
+            val listDoc = db.collection("lists").document(cleanCode).get().await()
+            val memberUids = listDoc.get("members") as? List<*> ?: emptyList<Any>()
+            val result = mutableListOf<ListMemberInfo>()
+            for (mUid in memberUids) {
+                if (mUid is String && mUid.isNotBlank()) {
+                    val userDoc = db.collection("users").document(mUid).get().await()
+                    val name = userDoc.getString("name") ?: "Użytkownik"
+                    val role = userDoc.getString("role") ?: "opiekun"
+                    result.add(ListMemberInfo(uid = mUid, name = name, role = role))
+                }
+            }
+            result
+        } catch (e: Exception) {
+            Log.e("ChecklistRepo", "Error getting members for list $cleanCode", e)
+            emptyList()
+        }
+    }
+
+    suspend fun removeMember(listCode: String, memberUid: String): Result<Unit> {
+        return try {
+            val uid = requireUserId()
+            val cleanCode = listCode.trim()
+            val listRef = db.collection("lists").document(cleanCode)
+            val listDoc = listRef.get().await()
+            val ownerId = listDoc.getString("ownerId")
+            if (ownerId != uid) {
+                return Result.failure(IllegalStateException("Tylko właściciel listy może usuwać członków."))
+            }
+            if (memberUid == ownerId) {
+                return Result.failure(IllegalArgumentException("Nie możesz usunąć właściciela z listy."))
+            }
+
+            listRef.update(
+                mapOf(
+                    "members" to FieldValue.arrayRemove(memberUid),
+                    "updatedAt" to FieldValue.serverTimestamp()
+                )
+            ).await()
+
+            Result.success(Unit)
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            Log.e("ChecklistRepo", "Error removing member $memberUid from list $listCode", e)
             Result.failure(e)
         }
     }
@@ -297,21 +417,48 @@ class ChecklistRepository(private val db: FirebaseFirestore) {
         }
     }
 
-    suspend fun joinNamedListAndSwitch(listCode: String, customName: String): Result<String> {
+    suspend fun joinListByInviteCode(inviteCode: String, customName: String): Result<String> {
         return try {
-            requireUserId()
-            val cleanCode = listCode.trim()
-            require(cleanCode.matches(Regex("^[0-9]{6}$"))) { "Kod listy musi mieć dokładnie 6 cyfr." }
-            val sharedName = getSharedListName(cleanCode)
-                ?: return Result.failure(IllegalArgumentException("Lista o kodzie $cleanCode nie istnieje."))
+            val uid = requireUserId()
+            val cleanInviteCode = inviteCode.trim().uppercase()
+            require(cleanInviteCode.length >= 6) { "Kod zaproszenia jest za krótki." }
+
+            val listQuery = db.collection("lists")
+                .whereEqualTo("inviteCode", cleanInviteCode)
+                .whereEqualTo("inviteUsed", false)
+                .get()
+                .await()
+
+            if (listQuery.isEmpty) {
+                return Result.failure(IllegalArgumentException("Kod zaproszenia jest nieprawidłowy lub został już zużyty."))
+            }
+
+            val listDoc = listQuery.documents.first()
+            val expiresAt = listDoc.getTimestamp("inviteExpiresAt")
+            if (expiresAt == null || expiresAt.toDate().before(Date())) {
+                return Result.failure(IllegalArgumentException("Kod zaproszenia wygasł."))
+            }
+
+            val listId = listDoc.id
+            val sharedName = listDoc.getString("name") ?: "Lista $listId"
             val finalName = customName.trim().take(80).ifBlank { sharedName }
-            saveListMembership(cleanCode, finalName).getOrThrow()
-            setActiveList(cleanCode).getOrThrow()
-            Result.success(cleanCode)
+
+            listDoc.reference.update(
+                mapOf(
+                    "members" to FieldValue.arrayUnion(uid),
+                    "inviteUsed" to true,
+                    "updatedAt" to FieldValue.serverTimestamp()
+                )
+            ).await()
+
+            saveListMembership(listId, finalName).getOrThrow()
+            setActiveList(listId).getOrThrow()
+
+            Result.success(listId)
         } catch (e: CancellationException) {
             throw e
         } catch (e: Exception) {
-            Log.e("ChecklistRepo", "Error joining list $listCode", e)
+            Log.e("ChecklistRepo", "Error joining list by invite code $inviteCode", e)
             Result.failure(e)
         }
     }

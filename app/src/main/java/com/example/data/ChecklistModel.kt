@@ -27,6 +27,37 @@ data class UserListMembership(
 
 @Keep
 @IgnoreExtraProperties
+data class ListDocument(
+    val code: String = "",
+    val name: String = "",
+    val ownerId: String = "",
+    val members: List<String> = emptyList(),
+    @ServerTimestamp val createdAt: Timestamp? = null,
+    @ServerTimestamp val updatedAt: Timestamp? = null
+)
+
+@Keep
+@IgnoreExtraProperties
+data class InviteDocument(
+    val id: String = "",
+    val listId: String = "",
+    val code: String = "",
+    val createdBy: String = "",
+    @ServerTimestamp val expiresAt: Timestamp? = null,
+    val used: Boolean = false,
+    @ServerTimestamp val createdAt: Timestamp? = null
+)
+
+@Keep
+@IgnoreExtraProperties
+data class ListMemberInfo(
+    val uid: String = "",
+    val name: String = "",
+    val role: String = "opiekun"
+)
+
+@Keep
+@IgnoreExtraProperties
 data class ChecklistItem(
     val id: String = "",
     val listCode: String = "",

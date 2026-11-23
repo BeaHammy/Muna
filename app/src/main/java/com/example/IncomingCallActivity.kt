@@ -29,10 +29,13 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.data.AppStrings
 import com.example.data.ChecklistRepository
 import com.example.ui.theme.*
 import kotlinx.coroutines.CoroutineScope
@@ -95,7 +98,7 @@ class IncomingCallActivity : ComponentActivity(), TextToSpeech.OnInitListener {
             MyApplicationTheme {
                 Surface(
                     modifier = Modifier.fillMaxSize(),
-                    color = WarningSurface
+                    color = Color(0xFF0F172A)
                 ) {
                     if (!isAnswered) {
                         IncomingCallScreen(
@@ -302,20 +305,21 @@ fun IncomingCallScreen(
     onAnswer: () -> Unit,
     onReject: () -> Unit
 ) {
-    val bgColor = if (isDimmed) DimmedCallBg else WarningSurface
-    val borderColor = if (isDimmed) DimmedCallBorder else WarningBorder
-    val titleColor = if (isDimmed) DimmedCallInk else WarningInk
-    val subTitleColor = if (isDimmed) DimmedCallInk.copy(alpha = 0.85f) else WarningSubInk
-    val cardBg = if (isDimmed) DimmedCallCardBg else CardSurface
-    val cardInk = if (isDimmed) DimmedCallInk else InkPrimary
+    val context = LocalContext.current
+    val bgColor = if (isDimmed) Color(0xFF05050A) else Color(0xFF0F172A)
+    val borderColor = if (isDimmed) Color(0xFF334155) else Color(0xFF4F46E5)
+    val titleColor = if (isDimmed) Color(0xFF94A3B8) else Color(0xFF818CF8)
+    val subTitleColor = if (isDimmed) Color(0xFF64748B) else Color(0xFFE2E8F0)
+    val cardBg = Color(0xFF1E293B)
+    val cardInk = Color(0xFFF8FAFC)
 
     Box(
         modifier = Modifier
             .fillMaxSize()
             .background(bgColor)
             .safeDrawingPadding()
-            .padding(20.dp)
-            .border(4.dp, borderColor, RoundedCornerShape(20.dp))
+            .padding(24.dp)
+            .border(2.dp, borderColor, RoundedCornerShape(28.dp))
     ) {
         Column(
             modifier = Modifier
@@ -325,26 +329,35 @@ fun IncomingCallScreen(
             verticalArrangement = Arrangement.SpaceBetween
         ) {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Spacer(modifier = Modifier.height(20.dp))
-                Icon(
-                    imageVector = Icons.Default.NotificationsActive,
-                    contentDescription = "Dzwonek alarmowy",
-                    tint = titleColor,
-                    modifier = Modifier.size(68.dp)
-                )
                 Spacer(modifier = Modifier.height(16.dp))
+                Surface(
+                    shape = RoundedCornerShape(50),
+                    color = Color(0xFF4F46E5).copy(alpha = 0.25f),
+                    modifier = Modifier.size(88.dp)
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        Icon(
+                            imageVector = Icons.Default.NotificationsActive,
+                            contentDescription = null,
+                            tint = Color(0xFF818CF8),
+                            modifier = Modifier.size(44.dp)
+                        )
+                    }
+                }
+                Spacer(modifier = Modifier.height(20.dp))
                 Text(
-                    text = "POWIADOMIENIE",
-                    fontSize = 30.sp,
+                    text = AppStrings.get(context, "notification").uppercase(),
+                    fontSize = 15.sp,
                     fontWeight = FontWeight.Bold,
+                    letterSpacing = 2.sp,
                     color = titleColor,
                     textAlign = TextAlign.Center
                 )
-                Spacer(modifier = Modifier.height(8.dp))
+                Spacer(modifier = Modifier.height(6.dp))
                 Text(
-                    text = "od $senderName",
-                    fontSize = 24.sp,
-                    fontWeight = FontWeight.SemiBold,
+                    text = "${AppStrings.get(context, "reminder_from")} $senderName",
+                    fontSize = 26.sp,
+                    fontWeight = FontWeight.Bold,
                     color = subTitleColor,
                     textAlign = TextAlign.Center
                 )
@@ -357,59 +370,63 @@ fun IncomingCallScreen(
                 ),
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(vertical = 16.dp),
-                elevation = CardDefaults.cardElevation(defaultElevation = 6.dp),
-                shape = RoundedCornerShape(16.dp)
+                    .padding(vertical = 12.dp),
+                elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
+                shape = RoundedCornerShape(24.dp)
             ) {
-                Text(
-                    text = reminderText,
-                    fontSize = 26.sp,
-                    lineHeight = 34.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = cardInk,
+                Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(24.dp),
-                    textAlign = TextAlign.Center
-                )
+                        .padding(28.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Text(
+                        text = reminderText,
+                        fontSize = 26.sp,
+                        lineHeight = 36.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = cardInk,
+                        textAlign = TextAlign.Center
+                    )
+                }
             }
 
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(bottom = 16.dp),
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    .padding(bottom = 12.dp),
+                horizontalArrangement = Arrangement.spacedBy(16.dp)
             ) {
                 Button(
                     onClick = onReject,
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = DangerRed,
-                        contentColor = OnPrimaryWhite
+                        containerColor = Color(0xFFEF4444),
+                        contentColor = Color.White
                     ),
-                    shape = RoundedCornerShape(14.dp),
+                    shape = RoundedCornerShape(20.dp),
                     modifier = Modifier
-                        .height(70.dp)
+                        .height(68.dp)
                         .weight(1f)
                 ) {
-                    Icon(Icons.Default.CallEnd, contentDescription = "Odrzuć", modifier = Modifier.size(28.dp))
-                    Spacer(modifier = Modifier.width(6.dp))
-                    Text("ODRZUĆ", fontSize = 18.sp, fontWeight = FontWeight.Bold)
+                    Icon(Icons.Default.CallEnd, contentDescription = null, modifier = Modifier.size(26.dp))
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(AppStrings.get(context, "reject"), fontSize = 17.sp, fontWeight = FontWeight.Bold)
                 }
 
                 Button(
                     onClick = onAnswer,
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = SuccessGreen,
-                        contentColor = OnPrimaryWhite
+                        containerColor = Color(0xFF10B981),
+                        contentColor = Color.White
                     ),
-                    shape = RoundedCornerShape(14.dp),
+                    shape = RoundedCornerShape(20.dp),
                     modifier = Modifier
-                        .height(70.dp)
+                        .height(68.dp)
                         .weight(1f)
                 ) {
-                    Icon(Icons.Default.Call, contentDescription = "Odbierz", modifier = Modifier.size(28.dp))
-                    Spacer(modifier = Modifier.width(6.dp))
-                    Text("ODBIERZ", fontSize = 18.sp, fontWeight = FontWeight.Bold)
+                    Icon(Icons.Default.Call, contentDescription = null, modifier = Modifier.size(26.dp))
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(AppStrings.get(context, "answer"), fontSize = 17.sp, fontWeight = FontWeight.Bold)
                 }
             }
         }
@@ -424,12 +441,13 @@ fun ActiveCallScreen(
     onDone: () -> Unit,
     onLeave: () -> Unit
 ) {
+    val context = LocalContext.current
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(TopBarSurface)
+            .background(Color(0xFF0F172A))
             .safeDrawingPadding()
-            .padding(20.dp)
+            .padding(24.dp)
     ) {
         Column(
             modifier = Modifier.fillMaxSize(),
@@ -437,53 +455,62 @@ fun ActiveCallScreen(
             verticalArrangement = Arrangement.SpaceBetween
         ) {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Spacer(modifier = Modifier.height(20.dp))
-                Icon(
-                    imageVector = Icons.Default.VolumeUp,
-                    contentDescription = "Trwająca rozmowa głosowa",
-                    tint = OnPrimaryContainer,
-                    modifier = Modifier.size(64.dp)
-                )
-                Spacer(modifier = Modifier.height(12.dp))
+                Spacer(modifier = Modifier.height(16.dp))
+                Surface(
+                    shape = RoundedCornerShape(50),
+                    color = Color(0xFF06B6D4).copy(alpha = 0.25f),
+                    modifier = Modifier.size(88.dp)
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        Icon(
+                            imageVector = Icons.Default.VolumeUp,
+                            contentDescription = null,
+                            tint = Color(0xFF22D3EE),
+                            modifier = Modifier.size(44.dp)
+                        )
+                    }
+                }
+                Spacer(modifier = Modifier.height(16.dp))
                 Text(
-                    text = "Rozmowa z: $senderName",
+                    text = "${AppStrings.get(context, "change_list").substringBefore(" ")}: $senderName",
                     fontSize = 26.sp,
                     fontWeight = FontWeight.Bold,
-                    color = OnPrimaryContainer,
+                    color = Color(0xFFF8FAFC),
                     textAlign = TextAlign.Center
                 )
             }
 
             Card(
                 colors = CardDefaults.cardColors(
-                    containerColor = CardSurface,
-                    contentColor = InkPrimary
+                    containerColor = Color(0xFF1E293B),
+                    contentColor = Color(0xFFF8FAFC)
                 ),
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(vertical = 16.dp),
-                elevation = CardDefaults.cardElevation(defaultElevation = 6.dp),
-                shape = RoundedCornerShape(16.dp)
+                    .padding(vertical = 12.dp),
+                elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
+                shape = RoundedCornerShape(24.dp)
             ) {
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(24.dp),
+                        .padding(28.dp),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     Text(
-                        text = "TREŚĆ PRZYPOMNIENIA:",
-                        fontSize = 15.sp,
+                        text = AppStrings.get(context, "call_reminder").uppercase(),
+                        fontSize = 14.sp,
                         fontWeight = FontWeight.Bold,
-                        color = InkSecondary
+                        letterSpacing = 1.5.sp,
+                        color = Color(0xFF94A3B8)
                     )
                     Spacer(modifier = Modifier.height(12.dp))
                     Text(
                         text = reminderText,
-                        fontSize = 28.sp,
+                        fontSize = 26.sp,
                         lineHeight = 36.sp,
                         fontWeight = FontWeight.Bold,
-                        color = InkPrimary,
+                        color = Color(0xFFF8FAFC),
                         textAlign = TextAlign.Center
                     )
                 }
@@ -492,49 +519,49 @@ fun ActiveCallScreen(
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(bottom = 16.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
+                    .padding(bottom = 12.dp),
+                verticalArrangement = Arrangement.spacedBy(14.dp)
             ) {
                 Button(
                     onClick = onRepeat,
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = InfoTeal,
-                        contentColor = OnPrimaryWhite
+                        containerColor = Color(0xFF0EA5E9),
+                        contentColor = Color.White
                     ),
-                    shape = RoundedCornerShape(12.dp),
+                    shape = RoundedCornerShape(16.dp),
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(58.dp)
+                        .height(60.dp)
                 ) {
-                    Text("POWTÓRZ GŁOSEM", fontSize = 19.sp, fontWeight = FontWeight.Bold)
+                    Text(AppStrings.get(context, "repeat_voice"), fontSize = 18.sp, fontWeight = FontWeight.Bold)
                 }
 
                 Button(
                     onClick = onDone,
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = SuccessGreen,
-                        contentColor = OnPrimaryWhite
+                        containerColor = Color(0xFF10B981),
+                        contentColor = Color.White
                     ),
-                    shape = RoundedCornerShape(12.dp),
+                    shape = RoundedCornerShape(16.dp),
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(58.dp)
+                        .height(60.dp)
                 ) {
-                    Text("ZROBIONE (WYKONANE)", fontSize = 19.sp, fontWeight = FontWeight.Bold)
+                    Text(AppStrings.get(context, "done_call"), fontSize = 18.sp, fontWeight = FontWeight.Bold)
                 }
 
                 Button(
                     onClick = onLeave,
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = LeaveAmberBg,
-                        contentColor = InkPrimary
+                        containerColor = Color(0xFFF59E0B),
+                        contentColor = Color.White
                     ),
-                    shape = RoundedCornerShape(12.dp),
+                    shape = RoundedCornerShape(16.dp),
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(58.dp)
+                        .height(60.dp)
                 ) {
-                    Text("ZOSTAW NA LIŚCIE", fontSize = 19.sp, fontWeight = FontWeight.Bold)
+                    Text(AppStrings.get(context, "leave_call"), fontSize = 18.sp, fontWeight = FontWeight.Bold)
                 }
             }
         }

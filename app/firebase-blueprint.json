@@ -1,0 +1,54 @@
+{
+  "entities": {
+    "User": {
+      "path": "/users/{userId}",
+      "fields": {
+        "uid": "string",
+        "name": "string",
+        "listCode": "string",
+        "role": "string",
+        "createdAt": "timestamp",
+        "updatedAt": "timestamp"
+      }
+    },
+    "List": {
+      "path": "/lists/{listId}",
+      "fields": {
+        "code": "string",
+        "name": "string",
+        "ownerId": "string",
+        "members": "array",
+        "createdAt": "timestamp",
+        "updatedAt": "timestamp"
+      }
+    },
+    "Item": {
+      "path": "/lists/{listId}/items/{itemId}",
+      "fields": {
+        "listCode": "string",
+        "text": "string",
+        "senderUid": "string",
+        "senderName": "string",
+        "deliveryMode": "number",
+        "scheduledTime": "number",
+        "status": "string",
+        "reminderAcknowledgedTime": "string",
+        "dueDate": "string",
+        "isDaily": "boolean",
+        "createdAt": "timestamp",
+        "updatedAt": "timestamp"
+      }
+    },
+    "Invite": {
+      "path": "/invites/{inviteId}",
+      "fields": {
+        "listId": "string",
+        "code": "string",
+        "createdBy": "string",
+        "expiresAt": "timestamp",
+        "used": "boolean",
+        "createdAt": "timestamp"
+      }
+    }
+  }
+}

@@ -1,0 +1,6 @@
+{
+  "firestore": {
+    "rules": "firestore.rules",
+    "database": "ai-studio-android-wsplnali-068c9943-f9d4-430b-8500-3c4f742da8a6"
+  }
+}

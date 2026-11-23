@@ -487,13 +487,13 @@ fun MainChecklistScreen(
                 res.onSuccess { newCode ->
                     onActiveListChanged(newCode)
                     scope.launch {
-                        snackbarHostState.showSnackbar("Utworzono nową listę (kod: $newCode)")
+                        snackbarHostState.showSnackbar("Utworzono nową listę")
                     }
                 }
                 res
             },
             onJoinList = { code, customName ->
-                val res = repository.joinNamedListAndSwitch(code, customName)
+                val res = repository.joinListByInviteCode(code, customName)
                 res.onSuccess { joinedCode ->
                     onActiveListChanged(joinedCode)
                     scope.launch {
@@ -517,6 +517,9 @@ fun MainChecklistScreen(
                     res
                 }
             },
+            onCreateInvite = { code -> repository.createInvite(code) },
+            onGetMembers = { code -> repository.getListMembers(code) },
+            onRemoveMember = { code, uid -> repository.removeMember(code, uid) },
             onDismiss = { showManageListsDialog = false }
         )
     }
@@ -793,18 +796,47 @@ fun ChecklistItemCard(
     val currentLang = AppSettings.getLanguage(context)
     val locale = if (currentLang == "en") Locale.US else Locale("pl", "PL")
 
-    val cardBg = if (isMine) MineCardBg else PartnerCardBg
-    val borderColor = if (isMine) MineCardBorder else PartnerCardBorder
+    val isCompleted = item.status == "completed"
+
+    val cardBg: androidx.compose.ui.graphics.Color
+    val borderColor: androidx.compose.ui.graphics.Color
     val badgeBg = if (isMine) MineBadgeBg else PartnerBadgeBg
     val headerBadge = if (isMine) AppStrings.get(context, "mine_badge") else "${AppStrings.get(context, "partner_badge_prefix")}${item.senderName.uppercase()}"
+
+    if (isCompleted) {
+        cardBg = CompletedCardBg
+        borderColor = CompletedCardBorder
+    } else if (!isMine) {
+        if (item.status != "pending" && item.status.isNotBlank()) {
+            cardBg = PartnerCardBg
+            borderColor = PartnerCardBorder
+        } else {
+            cardBg = ReceivedBlueCardBg
+            borderColor = ReceivedBlueCardBorder
+        }
+    } else {
+        cardBg = MineCardBg
+        borderColor = MineCardBorder
+    }
 
     val timeFormat = SimpleDateFormat("HH:mm", locale)
     val scheduledStr = if (item.scheduledTime > 0) timeFormat.format(Date(item.scheduledTime)) else ""
     val createdStr = item.createdAt?.toDate()?.let { timeFormat.format(it) } ?: ""
-    val isCompleted = item.status == "completed"
     val completedTimeStr = item.reminderAcknowledgedTime.takeIf { it.isNotBlank() && isCompleted } 
         ?: item.updatedAt?.toDate()?.let { timeFormat.format(it) } 
         ?: createdStr
+
+    val statusTextDisplay = remember(item.status, item.reminderAcknowledgedTime, scheduledStr) {
+        when (item.status) {
+            "notified" -> AppStrings.get(context, "status_notified")
+            "answered" -> "${AppStrings.get(context, "status_answered")}${item.reminderAcknowledgedTime.takeIf { it.isNotBlank() } ?: ""}"
+            "rejected" -> "${AppStrings.get(context, "status_rejected")}${item.reminderAcknowledgedTime.takeIf { it.isNotBlank() } ?: ""}"
+            "pinned" -> "${AppStrings.get(context, "status_pinned")}${item.reminderAcknowledgedTime.takeIf { it.isNotBlank() } ?: ""}"
+            "scheduled" -> "${AppStrings.get(context, "status_scheduled")}$scheduledStr"
+            "ringing" -> AppStrings.get(context, "status_ringing")
+            else -> ""
+        }
+    }
 
     Card(
         modifier = Modifier
@@ -841,37 +873,6 @@ fun ChecklistItemCard(
                 }
 
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    when (item.status) {
-                        "completed" -> {
-                            Icon(Icons.Default.Check, contentDescription = null, tint = SuccessGreen)
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Text(AppStrings.get(context, "completed"), color = SuccessGreen, fontWeight = FontWeight.Bold, fontSize = 15.sp)
-                        }
-                        "notified" -> {
-                            Text(
-                                text = AppStrings.get(context, "status_notified"),
-                                color = OnPrimaryContainer,
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 14.sp
-                            )
-                        }
-                        "answered" -> {
-                            Text("${AppStrings.get(context, "status_answered")}${item.reminderAcknowledgedTime}", color = SuccessGreen, fontWeight = FontWeight.Bold, fontSize = 14.sp)
-                        }
-                        "rejected" -> {
-                            Text("${AppStrings.get(context, "status_rejected")}${item.reminderAcknowledgedTime}", color = DangerRed, fontWeight = FontWeight.Bold, fontSize = 14.sp)
-                        }
-                        "pinned" -> {
-                            Text("${AppStrings.get(context, "status_pinned")}${item.reminderAcknowledgedTime}", color = WarningInk, fontWeight = FontWeight.Bold, fontSize = 14.sp)
-                        }
-                        "scheduled" -> {
-                            Text("${AppStrings.get(context, "status_scheduled")}$scheduledStr", color = OnPrimaryContainer, fontWeight = FontWeight.Bold, fontSize = 14.sp)
-                        }
-                        "ringing" -> {
-                            Text(AppStrings.get(context, "status_ringing"), color = DangerRed, fontWeight = FontWeight.Bold, fontSize = 14.sp)
-                        }
-                    }
-
                     Spacer(modifier = Modifier.width(6.dp))
                     TextButton(
                         onClick = onDeleteClick,
@@ -907,7 +908,7 @@ fun ChecklistItemCard(
                         color = if (isCompleted) InkSecondary else InkPrimary,
                         style = if (isCompleted) MaterialTheme.typography.bodyLarge.copy(textDecoration = androidx.compose.ui.text.style.TextDecoration.LineThrough) else MaterialTheme.typography.bodyLarge
                     )
-                    if (createdStr.isNotBlank() || item.isDaily || isCompleted) {
+                    if (createdStr.isNotBlank() || item.isDaily || isCompleted || statusTextDisplay.isNotBlank()) {
                         Spacer(modifier = Modifier.height(2.dp))
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             if (isCompleted) {
@@ -916,6 +917,13 @@ fun ChecklistItemCard(
                                     fontSize = 13.sp,
                                     color = SuccessGreen,
                                     fontWeight = FontWeight.Medium
+                                )
+                            } else if (statusTextDisplay.isNotBlank()) {
+                                Text(
+                                    text = statusTextDisplay,
+                                    fontSize = 13.sp,
+                                    color = WarningInk,
+                                    fontWeight = FontWeight.Bold
                                 )
                             } else if (createdStr.isNotBlank()) {
                                 Text(
@@ -926,7 +934,7 @@ fun ChecklistItemCard(
                                 )
                             }
                             if (item.isDaily) {
-                                if (createdStr.isNotBlank() || isCompleted) {
+                                if (createdStr.isNotBlank() || isCompleted || statusTextDisplay.isNotBlank()) {
                                     Text(text = " • ", fontSize = 13.sp, color = InkSecondary)
                                 }
                                 Text(

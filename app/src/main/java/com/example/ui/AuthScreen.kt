@@ -4,6 +4,7 @@ import android.app.Activity
 import android.content.Context
 import android.util.Log
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -145,13 +146,14 @@ fun AuthScreen(onAuthComplete: (UserProfile) -> Unit) {
                 Spacer(modifier = Modifier.height(24.dp))
 
                 if (signedInUserId == null) {
-                    // Method selector tabs
+                    // Method selector tiles
                     Row(
                         modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                        horizontalArrangement = Arrangement.spacedBy(16.dp)
                     ) {
-                        TabButton(
-                            text = "Google",
+                        AuthMethodTile(
+                            title = "Google",
+                            subtitle = "Szybko i bez hasła",
                             selected = authMethod == "google",
                             onClick = {
                                 authMethod = "google"
@@ -160,8 +162,9 @@ fun AuthScreen(onAuthComplete: (UserProfile) -> Unit) {
                             },
                             modifier = Modifier.weight(1f)
                         )
-                        TabButton(
-                            text = "E-mail i Hasło",
+                        AuthMethodTile(
+                            title = "E-mail",
+                            subtitle = "Tradycyjne hasło",
                             selected = authMethod == "email",
                             onClick = {
                                 authMethod = "email"
@@ -588,27 +591,51 @@ fun AuthScreen(onAuthComplete: (UserProfile) -> Unit) {
 }
 
 @Composable
-fun TabButton(
-    text: String,
+fun AuthMethodTile(
+    title: String,
+    subtitle: String,
     selected: Boolean,
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    Button(
+    Card(
         onClick = onClick,
-        colors = ButtonDefaults.buttonColors(
-            containerColor = if (selected) OnPrimaryContainer else NeutralTabBg,
-            contentColor = if (selected) OnPrimaryWhite else InkPrimary
+        modifier = modifier
+            .height(84.dp)
+            .border(
+                width = if (selected) 2.dp else 1.dp,
+                color = if (selected) PrimaryBlue else BorderNeutral,
+                shape = RoundedCornerShape(16.dp)
+            ),
+        colors = CardDefaults.cardColors(
+            containerColor = if (selected) PrimaryContainer.copy(alpha = 0.5f) else CardSurface,
+            contentColor = InkPrimary
         ),
-        shape = RoundedCornerShape(12.dp),
-        modifier = modifier.height(48.dp)
+        shape = RoundedCornerShape(16.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = if (selected) 4.dp else 1.dp)
     ) {
-        Text(
-            text = text,
-            fontSize = 16.sp,
-            fontWeight = FontWeight.Bold,
-            maxLines = 1
-        )
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(12.dp),
+            verticalArrangement = Arrangement.Center,
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Text(
+                text = title,
+                fontSize = 16.sp,
+                fontWeight = FontWeight.Bold,
+                color = if (selected) OnPrimaryContainer else InkPrimary,
+                maxLines = 1
+            )
+            Spacer(modifier = Modifier.height(2.dp))
+            Text(
+                text = subtitle,
+                fontSize = 12.sp,
+                color = if (selected) PrimaryBlue else InkSecondary,
+                maxLines = 1
+            )
+        }
     }
 }
 
