@@ -435,8 +435,8 @@ fun ManageListsDialog(
                     errorMessage = null
                     val res = onCreateList(customName)
                     isBusy = false
-                    showCreateDialog = false
                     if (res.isSuccess) {
+                        showCreateDialog = false
                         onDismiss()
                     } else {
                         errorMessage = res.exceptionOrNull()?.localizedMessage
@@ -460,7 +460,6 @@ fun ManageListsDialog(
                         showJoinDialog = false
                         onDismiss()
                     } else {
-                        showJoinDialog = false
                         errorMessage = res.exceptionOrNull()?.localizedMessage
                             ?: "Nie udało się dołączyć do listy."
                     }

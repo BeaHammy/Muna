@@ -102,8 +102,7 @@ class ChecklistRepository(private val db: FirebaseFirestore) {
                 mapOf(
                     "code" to profile.listCode,
                     "name" to "Wspólna Lista ${profile.listCode}",
-                    "ownerId" to profile.uid,
-                    "members" to listOf(profile.uid),
+                    "ownerUid" to profile.uid,
                     "createdAt" to FieldValue.serverTimestamp(),
                     "updatedAt" to FieldValue.serverTimestamp()
                 ),
@@ -165,8 +164,7 @@ class ChecklistRepository(private val db: FirebaseFirestore) {
             val listData = mapOf(
                 "code" to cleanCode,
                 "name" to cleanName,
-                "ownerId" to uid,
-                "members" to listOf(uid),
+                "ownerUid" to uid,
                 "createdAt" to FieldValue.serverTimestamp(),
                 "updatedAt" to FieldValue.serverTimestamp()
             )
@@ -192,22 +190,11 @@ class ChecklistRepository(private val db: FirebaseFirestore) {
                 val listData = mapOf(
                     "code" to cleanCode,
                     "name" to "Wspólna Lista $cleanCode",
-                    "ownerId" to uid,
-                    "members" to listOf(uid),
+                    "ownerUid" to uid,
                     "createdAt" to FieldValue.serverTimestamp(),
                     "updatedAt" to FieldValue.serverTimestamp()
                 )
                 listRef.set(listData, com.google.firebase.firestore.SetOptions.merge()).await()
-            } else {
-                val members = listDoc.get("members") as? List<*> ?: emptyList<Any>()
-                if (!members.contains(uid)) {
-                    listRef.update(
-                        mapOf(
-                            "members" to FieldValue.arrayUnion(uid),
-                            "updatedAt" to FieldValue.serverTimestamp()
-                        )
-                    ).await()
-                }
             }
 
             // Generate 8-character alphanumeric code excluding confusing characters (O, 0, I, 1)
@@ -445,7 +432,6 @@ class ChecklistRepository(private val db: FirebaseFirestore) {
 
             listDoc.reference.update(
                 mapOf(
-                    "members" to FieldValue.arrayUnion(uid),
                     "inviteUsed" to true,
                     "updatedAt" to FieldValue.serverTimestamp()
                 )
