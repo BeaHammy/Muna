@@ -428,7 +428,14 @@ fun ManageListsDialog(
 
     if (showCreateDialog) {
         CreateNamedListSubDialog(
-            onDismiss = { showCreateDialog = false },
+            isBusy = isBusy,
+            errorMessage = errorMessage,
+            onDismiss = {
+                if (!isBusy) {
+                    showCreateDialog = false
+                    errorMessage = null
+                }
+            },
             onConfirm = { customName ->
                 scope.launch {
                     isBusy = true
@@ -437,6 +444,7 @@ fun ManageListsDialog(
                     isBusy = false
                     if (res.isSuccess) {
                         showCreateDialog = false
+                        errorMessage = null
                         onDismiss()
                     } else {
                         errorMessage = res.exceptionOrNull()?.localizedMessage
@@ -759,6 +767,8 @@ private fun RenameListSubDialog(
 
 @Composable
 private fun CreateNamedListSubDialog(
+    isBusy: Boolean,
+    errorMessage: String?,
     onDismiss: () -> Unit,
     onConfirm: (String) -> Unit
 ) {
@@ -777,7 +787,7 @@ private fun CreateNamedListSubDialog(
         unfocusedContainerColor = CardSurface
     )
 
-    Dialog(onDismissRequest = onDismiss) {
+    Dialog(onDismissRequest = { if (!isBusy) onDismiss() }) {
         Card(
             shape = RoundedCornerShape(18.dp),
             colors = CardDefaults.cardColors(containerColor = CardSurface, contentColor = InkPrimary),
@@ -801,15 +811,34 @@ private fun CreateNamedListSubDialog(
                     textStyle = MaterialTheme.typography.bodyMedium.copy(color = InkPrimary),
                     colors = textFieldColors,
                     singleLine = true,
+                    enabled = !isBusy,
                     modifier = Modifier.fillMaxWidth()
                 )
 
+                if (errorMessage != null) {
+                    Surface(
+                        color = DangerRed.copy(alpha = 0.08f),
+                        shape = RoundedCornerShape(8.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text(
+                            text = errorMessage,
+                            color = DangerRed,
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.Medium,
+                            modifier = Modifier.padding(10.dp)
+                        )
+                    }
+                }
+
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.End
+                    horizontalArrangement = Arrangement.End,
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
                     TextButton(
                         onClick = onDismiss,
+                        enabled = !isBusy,
                         modifier = Modifier.defaultMinSize(minHeight = 48.dp)
                     ) {
                         Text(AppStrings.get(context, "cancel"), fontSize = 17.sp, color = InkSecondary)
@@ -817,10 +846,15 @@ private fun CreateNamedListSubDialog(
                     Spacer(modifier = Modifier.width(8.dp))
                     Button(
                         onClick = { onConfirm(nameInput.trim()) },
+                        enabled = !isBusy,
                         colors = ButtonDefaults.buttonColors(containerColor = SuccessGreen, contentColor = OnPrimaryWhite),
                         modifier = Modifier.defaultMinSize(minHeight = 48.dp)
                     ) {
-                        Text(AppStrings.get(context, "create"), fontSize = 17.sp, fontWeight = FontWeight.Bold)
+                        if (isBusy) {
+                            CircularProgressIndicator(modifier = Modifier.size(20.dp), color = OnPrimaryWhite, strokeWidth = 2.dp)
+                        } else {
+                            Text(AppStrings.get(context, "create"), fontSize = 17.sp, fontWeight = FontWeight.Bold)
+                        }
                     }
                 }
             }
