@@ -29,7 +29,7 @@ service cloud.firestore {
 
     match /lists/{listCode} {
       allow get, create, update, delete: if isSignedIn() && isValidListCode(listCode);
-      allow list: if false;
+      allow list: if isSignedIn();
 
       match /items/{itemId} {
         allow get, list: if isSignedIn() && isValidListCode(listCode);

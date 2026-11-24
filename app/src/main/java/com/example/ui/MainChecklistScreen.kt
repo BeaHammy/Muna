@@ -487,13 +487,13 @@ fun MainChecklistScreen(
                 res.onSuccess { newCode ->
                     onActiveListChanged(newCode)
                     scope.launch {
-                        snackbarHostState.showSnackbar("Utworzono nową listę")
+                        snackbarHostState.showSnackbar("Utworzono nową listę (kod: $newCode)")
                     }
                 }
                 res
             },
             onJoinList = { code, customName ->
-                val res = repository.joinListByInviteCode(code, customName)
+                val res = repository.joinNamedListAndSwitch(code, customName)
                 res.onSuccess { joinedCode ->
                     onActiveListChanged(joinedCode)
                     scope.launch {
@@ -517,9 +517,9 @@ fun MainChecklistScreen(
                     res
                 }
             },
-            onCreateInvite = { code -> repository.createInvite(code) },
-            onGetMembers = { code -> repository.getListMembers(code) },
-            onRemoveMember = { code, uid -> repository.removeMember(code, uid) },
+            onShareList = { code ->
+                repository.generateInviteCode(code)
+            },
             onDismiss = { showManageListsDialog = false }
         )
     }

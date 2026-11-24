@@ -1,8 +1,5 @@
 package com.example.ui
 
-import android.content.ClipData
-import android.content.ClipboardManager
-import android.content.Context
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -12,10 +9,8 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.GroupAdd
-import androidx.compose.material.icons.filled.PersonRemove
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -23,19 +18,15 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import com.example.data.AppStrings
-import com.example.data.ListMemberInfo
 import com.example.data.UserListMembership
 import com.example.ui.theme.*
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import java.util.Date
 
 @Composable
 fun ManageListsDialog(
@@ -46,20 +37,18 @@ fun ManageListsDialog(
     onCreateList: suspend (String) -> Result<String>,
     onJoinList: suspend (String, String) -> Result<String>,
     onLeaveList: suspend (String) -> Result<Unit>,
-    onCreateInvite: suspend (String) -> Result<Pair<String, Date>>,
-    onGetMembers: suspend (String) -> List<ListMemberInfo>,
-    onRemoveMember: suspend (String, String) -> Result<Unit>,
+    onShareList: suspend (String) -> Result<String>,
     onDismiss: () -> Unit
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     var isBusy by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
-    var successMessage by remember { mutableStateOf<String?>(null) }
 
     var renameTarget by remember { mutableStateOf<UserListMembership?>(null) }
     var leaveTarget by remember { mutableStateOf<UserListMembership?>(null) }
-    var inviteTargetCode by remember { mutableStateOf<String?>(null) }
+    var shareTarget by remember { mutableStateOf<UserListMembership?>(null) }
+    var shareInviteCode by remember { mutableStateOf<String?>(null) }
     var showCreateDialog by remember { mutableStateOf(false) }
     var showJoinDialog by remember { mutableStateOf(false) }
 
@@ -116,23 +105,7 @@ fun ManageListsDialog(
                     }
                 }
 
-                if (successMessage != null) {
-                    Surface(
-                        color = SuccessGreen.copy(alpha = 0.08f),
-                        shape = RoundedCornerShape(10.dp),
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Text(
-                            text = successMessage!!,
-                            color = SuccessGreen,
-                            fontSize = 15.sp,
-                            fontWeight = FontWeight.Medium,
-                            modifier = Modifier.padding(12.dp)
-                        )
-                    }
-                }
-
-                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     displayedMemberships.forEach { membership ->
                         val isActive = membership.code == activeListCode
                         val displayName = membership.customName.ifBlank { "Lista ${membership.code}" }
@@ -151,7 +124,7 @@ fun ManageListsDialog(
                         ) {
                             Column(
                                 modifier = Modifier.padding(14.dp),
-                                verticalArrangement = Arrangement.spacedBy(10.dp)
+                                verticalArrangement = Arrangement.spacedBy(8.dp)
                             ) {
                                 Row(
                                     modifier = Modifier.fillMaxWidth(),
@@ -201,8 +174,7 @@ fun ManageListsDialog(
 
                                 Row(
                                     modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                    verticalAlignment = Alignment.CenterVertically
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
                                 ) {
                                     if (!isActive) {
                                         Button(
@@ -226,62 +198,87 @@ fun ManageListsDialog(
                                                 contentColor = OnPrimaryWhite
                                             ),
                                             shape = RoundedCornerShape(10.dp),
-                                            contentPadding = PaddingValues(horizontal = 10.dp, vertical = 8.dp),
-                                            modifier = Modifier.weight(1f).defaultMinSize(minHeight = 44.dp)
+                                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
+                                            modifier = Modifier
+                                                .weight(1f)
+                                                .defaultMinSize(minHeight = 48.dp)
                                         ) {
-                                            Text(AppStrings.get(context, "open"), fontSize = 14.sp, fontWeight = FontWeight.Bold)
+                                            Text(AppStrings.get(context, "open"), fontSize = 15.sp, fontWeight = FontWeight.Bold)
                                         }
-                                    }
-
-                                    OutlinedButton(
-                                        onClick = { inviteTargetCode = membership.code },
-                                        enabled = !isBusy,
-                                        shape = RoundedCornerShape(10.dp),
-                                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 8.dp),
-                                        modifier = Modifier.weight(1f).defaultMinSize(minHeight = 44.dp)
-                                    ) {
-                                        Icon(
-                                            imageVector = Icons.Default.GroupAdd,
-                                            contentDescription = null,
-                                            tint = PrimaryBlue,
-                                            modifier = Modifier.size(16.dp)
-                                        )
-                                        Spacer(modifier = Modifier.width(4.dp))
-                                        Text(
-                                            text = AppStrings.get(context, "invite_other"),
-                                            fontSize = 13.sp,
-                                            fontWeight = FontWeight.Bold,
-                                            color = PrimaryBlue,
-                                            maxLines = 1
-                                        )
                                     }
 
                                     OutlinedButton(
                                         onClick = { renameTarget = membership },
                                         enabled = !isBusy,
                                         shape = RoundedCornerShape(10.dp),
-                                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 8.dp),
-                                        modifier = Modifier.defaultMinSize(minHeight = 44.dp)
+                                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
+                                        modifier = Modifier
+                                            .weight(1f)
+                                            .defaultMinSize(minHeight = 48.dp)
                                     ) {
                                         Icon(
                                             imageVector = Icons.Default.Edit,
                                             contentDescription = null,
                                             tint = PrimaryBlue,
-                                            modifier = Modifier.size(16.dp)
+                                            modifier = Modifier.size(18.dp)
+                                        )
+                                        Spacer(modifier = Modifier.width(6.dp))
+                                        Text(
+                                            text = AppStrings.get(context, "rename"),
+                                            fontSize = 15.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            color = PrimaryBlue,
+                                            maxLines = 1
                                         )
                                     }
 
                                     if (displayedMemberships.size > 1) {
                                         OutlinedButton(
+                                         onClick = {
+                                             scope.launch {
+                                                 isBusy = true
+                                                 errorMessage = null
+                                                 val res = onShareList(membership.code)
+                                                 isBusy = false
+                                                 if (res.isSuccess) {
+                                                     shareInviteCode = res.getOrNull()
+                                                     shareTarget = membership
+                                                 } else {
+                                                     errorMessage = res.exceptionOrNull()?.localizedMessage
+                                                         ?: "Nie udało się wygenerować kodu zaproszenia."
+                                                 }
+                                             }
+                                         },
+                                         enabled = !isBusy,
+                                         shape = RoundedCornerShape(10.dp),
+                                         contentPadding = PaddingValues(horizontal = 8.dp, vertical = 8.dp),
+                                         modifier = Modifier.defaultMinSize(minHeight = 48.dp)
+                                     ) {
+                                         Icon(
+                                             imageVector = Icons.Default.GroupAdd,
+                                             contentDescription = null,
+                                             tint = PrimaryBlue,
+                                             modifier = Modifier.size(18.dp)
+                                         )
+                                         Spacer(modifier = Modifier.width(4.dp))
+                                         Text(
+                                             text = AppStrings.get(context, "share"),
+                                             fontSize = 14.sp,
+                                             fontWeight = FontWeight.Bold,
+                                             color = PrimaryBlue
+                                         )
+                                     }
+
+                                     OutlinedButton(
                                             onClick = { leaveTarget = membership },
                                             enabled = !isBusy,
                                             shape = RoundedCornerShape(10.dp),
-                                            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 8.dp),
-                                            modifier = Modifier.defaultMinSize(minHeight = 44.dp)
+                                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
+                                            modifier = Modifier.defaultMinSize(minHeight = 48.dp)
                                         ) {
                                             Text(
                                                 text = AppStrings.get(context, "leave"),
-                                                fontSize = 13.sp,
+                                                fontSize = 15.sp,
                                                 fontWeight = FontWeight.Bold,
                                                 color = DangerRed
                                             )
@@ -342,16 +339,6 @@ fun ManageListsDialog(
                 }
             }
         }
-    }
-
-    if (inviteTargetCode != null) {
-        InviteDialog(
-            listCode = inviteTargetCode!!,
-            onCreateInvite = onCreateInvite,
-            onGetMembers = onGetMembers,
-            onRemoveMember = onRemoveMember,
-            onDismiss = { inviteTargetCode = null }
-        )
     }
 
     if (renameTarget != null) {
@@ -430,12 +417,7 @@ fun ManageListsDialog(
         CreateNamedListSubDialog(
             isBusy = isBusy,
             errorMessage = errorMessage,
-            onDismiss = {
-                if (!isBusy) {
-                    showCreateDialog = false
-                    errorMessage = null
-                }
-            },
+            onDismiss = { showCreateDialog = false },
             onConfirm = { customName ->
                 scope.launch {
                     isBusy = true
@@ -444,7 +426,6 @@ fun ManageListsDialog(
                     isBusy = false
                     if (res.isSuccess) {
                         showCreateDialog = false
-                        errorMessage = null
                         onDismiss()
                     } else {
                         errorMessage = res.exceptionOrNull()?.localizedMessage
@@ -455,8 +436,20 @@ fun ManageListsDialog(
         )
     }
 
+    if (shareTarget != null && shareInviteCode != null) {
+        ShareListSubDialog(
+            listCode = shareTarget!!.code,
+            listName = shareTarget!!.customName.ifBlank { "Lista ${shareTarget!!.code}" },
+            inviteCode = shareInviteCode!!,
+            onDismiss = {
+                shareTarget = null
+                shareInviteCode = null
+            }
+        )
+    }
+
     if (showJoinDialog) {
-        JoinInviteSubDialog(
+        JoinNamedListSubDialog(
             onDismiss = { showJoinDialog = false },
             onConfirm = { code, customName ->
                 scope.launch {
@@ -468,217 +461,13 @@ fun ManageListsDialog(
                         showJoinDialog = false
                         onDismiss()
                     } else {
+                        showJoinDialog = false
                         errorMessage = res.exceptionOrNull()?.localizedMessage
                             ?: "Nie udało się dołączyć do listy."
                     }
                 }
             }
         )
-    }
-}
-
-@Composable
-private fun InviteDialog(
-    listCode: String,
-    onCreateInvite: suspend (String) -> Result<Pair<String, Date>>,
-    onGetMembers: suspend (String) -> List<ListMemberInfo>,
-    onRemoveMember: suspend (String, String) -> Result<Unit>,
-    onDismiss: () -> Unit
-) {
-    val context = LocalContext.current
-    val clipboardManager = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-    val scope = rememberCoroutineScope()
-
-    var inviteCode by remember { mutableStateOf<String?>(null) }
-    var expiresAt by remember { mutableStateOf<Date?>(null) }
-    var members by remember { mutableStateOf<List<ListMemberInfo>>(emptyList()) }
-    var isLoading by remember { mutableStateOf(true) }
-    var errorMsg by remember { mutableStateOf<String?>(null) }
-    var successMsg by remember { mutableStateOf<String?>(null) }
-
-    var remainingSeconds by remember { mutableStateOf(15 * 60) }
-
-    suspend fun loadData() {
-        isLoading = true
-        errorMsg = null
-        val inviteRes = onCreateInvite(listCode)
-        if (inviteRes.isSuccess) {
-            val pair = inviteRes.getOrThrow()
-            inviteCode = pair.first
-            expiresAt = pair.second
-            remainingSeconds = 15 * 60
-        } else {
-            errorMsg = inviteRes.exceptionOrNull()?.localizedMessage ?: "Nie udało się wygenerować kodu."
-        }
-        members = onGetMembers(listCode)
-        isLoading = false
-    }
-
-    LaunchedEffect(listCode) {
-        loadData()
-    }
-
-    LaunchedEffect(expiresAt) {
-        while (remainingSeconds > 0) {
-            delay(1000L)
-            remainingSeconds--
-        }
-    }
-
-    val minutes = remainingSeconds / 60
-    val seconds = remainingSeconds % 60
-    val timeFormatted = String.format("%02d:%02d", minutes, seconds)
-
-    Dialog(onDismissRequest = onDismiss) {
-        Card(
-            shape = RoundedCornerShape(18.dp),
-            colors = CardDefaults.cardColors(containerColor = CardSurface, contentColor = InkPrimary),
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Column(
-                modifier = Modifier.padding(22.dp),
-                verticalArrangement = Arrangement.spacedBy(14.dp)
-            ) {
-                Text(
-                    text = AppStrings.get(context, "invite_other"),
-                    style = MaterialTheme.typography.titleLarge,
-                    color = OnPrimaryContainer
-                )
-
-                if (isLoading) {
-                    Box(
-                        modifier = Modifier.fillMaxWidth().height(120.dp),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        CircularProgressIndicator(color = PrimaryBlue)
-                    }
-                } else if (errorMsg != null) {
-                    Text(text = errorMsg!!, color = DangerRed, fontSize = 15.sp)
-                } else {
-                    Text(
-                        text = AppStrings.get(context, "invite_code_title"),
-                        fontSize = 14.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        color = InkSecondary
-                    )
-
-                    Surface(
-                        color = PrimaryContainer.copy(alpha = 0.5f),
-                        shape = RoundedCornerShape(12.dp),
-                        border = BorderStroke(1.dp, PrimaryBlue),
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Row(
-                            modifier = Modifier.padding(16.dp),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Text(
-                                text = inviteCode ?: "--------",
-                                fontSize = 28.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = OnPrimaryContainer,
-                                letterSpacing = 2.sp
-                            )
-                            Button(
-                                onClick = {
-                                    inviteCode?.let { code ->
-                                        val clip = ClipData.newPlainText("Kod zaproszenia", code)
-                                        clipboardManager.setPrimaryClip(clip)
-                                        successMsg = AppStrings.get(context, "code_copied")
-                                    }
-                                },
-                                colors = ButtonDefaults.buttonColors(containerColor = PrimaryBlue, contentColor = OnPrimaryWhite),
-                                shape = RoundedCornerShape(8.dp)
-                            ) {
-                                Icon(Icons.Default.ContentCopy, contentDescription = null, modifier = Modifier.size(16.dp))
-                                Spacer(modifier = Modifier.width(4.dp))
-                                Text(AppStrings.get(context, "copy_code"), fontSize = 14.sp, fontWeight = FontWeight.Bold)
-                            }
-                        }
-                    }
-
-                    Text(
-                        text = "${AppStrings.get(context, "expires_in")}$timeFormatted",
-                        fontSize = 14.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = if (remainingSeconds > 60) InkSecondary else DangerRed
-                    )
-
-                    if (successMsg != null) {
-                        Text(text = successMsg!!, color = SuccessGreen, fontSize = 14.sp, fontWeight = FontWeight.Medium)
-                    }
-
-                    HorizontalDivider(color = BorderNeutral)
-
-                    Text(
-                        text = AppStrings.get(context, "members_title"),
-                        fontSize = 16.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = InkPrimary
-                    )
-
-                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        members.forEach { member ->
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Column {
-                                    Text(
-                                        text = member.name.ifBlank { "Użytkownik" },
-                                        fontSize = 16.sp,
-                                        fontWeight = FontWeight.SemiBold,
-                                        color = InkPrimary
-                                    )
-                                    Text(
-                                        text = member.role.replaceFirstChar { it.uppercase() },
-                                        fontSize = 13.sp,
-                                        color = InkSecondary
-                                    )
-                                }
-                                // Allow removing if more than 1 member
-                                if (members.size > 1) {
-                                    OutlinedButton(
-                                        onClick = {
-                                            scope.launch {
-                                                val res = onRemoveMember(listCode, member.uid)
-                                                if (res.isSuccess) {
-                                                    members = onGetMembers(listCode)
-                                                } else {
-                                                    errorMsg = res.exceptionOrNull()?.localizedMessage ?: "Nie udało się usunąć członka."
-                                                }
-                                            }
-                                        },
-                                        colors = ButtonDefaults.outlinedButtonColors(contentColor = DangerRed),
-                                        border = BorderStroke(1.dp, DangerRed),
-                                        shape = RoundedCornerShape(8.dp),
-                                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp)
-                                    ) {
-                                        Icon(Icons.Default.PersonRemove, contentDescription = null, modifier = Modifier.size(14.dp))
-                                        Spacer(modifier = Modifier.width(4.dp))
-                                        Text(AppStrings.get(context, "remove_access"), fontSize = 13.sp)
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.End
-                ) {
-                    TextButton(
-                        onClick = onDismiss,
-                        modifier = Modifier.defaultMinSize(minHeight = 48.dp)
-                    ) {
-                        Text(AppStrings.get(context, "save_close"), fontSize = 17.sp, fontWeight = FontWeight.Bold, color = PrimaryBlue)
-                    }
-                }
-            }
-        }
     }
 }
 
@@ -797,7 +586,7 @@ private fun CreateNamedListSubDialog(
                 modifier = Modifier.padding(22.dp),
                 verticalArrangement = Arrangement.spacedBy(14.dp)
             ) {
-                Text(AppStrings.get(context, "new_shared_list"), style = MaterialTheme.typography.titleLarge, color = OnPrimaryContainer)
+                Text(AppStrings.get(context, "new_list"), style = MaterialTheme.typography.titleLarge, color = OnPrimaryContainer)
                 Text(
                     text = AppStrings.get(context, "create_list_desc"),
                     fontSize = 15.sp,
@@ -816,25 +605,17 @@ private fun CreateNamedListSubDialog(
                 )
 
                 if (errorMessage != null) {
-                    Surface(
-                        color = DangerRed.copy(alpha = 0.08f),
-                        shape = RoundedCornerShape(8.dp),
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Text(
-                            text = errorMessage,
-                            color = DangerRed,
-                            fontSize = 14.sp,
-                            fontWeight = FontWeight.Medium,
-                            modifier = Modifier.padding(10.dp)
-                        )
-                    }
+                    Text(
+                        text = errorMessage,
+                        color = DangerRed,
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Medium
+                    )
                 }
 
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.End,
-                    verticalAlignment = Alignment.CenterVertically
+                    horizontalArrangement = Arrangement.End
                 ) {
                     TextButton(
                         onClick = onDismiss,
@@ -851,7 +632,11 @@ private fun CreateNamedListSubDialog(
                         modifier = Modifier.defaultMinSize(minHeight = 48.dp)
                     ) {
                         if (isBusy) {
-                            CircularProgressIndicator(modifier = Modifier.size(20.dp), color = OnPrimaryWhite, strokeWidth = 2.dp)
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(20.dp),
+                                color = OnPrimaryWhite,
+                                strokeWidth = 2.dp
+                            )
                         } else {
                             Text(AppStrings.get(context, "create"), fontSize = 17.sp, fontWeight = FontWeight.Bold)
                         }
@@ -863,7 +648,106 @@ private fun CreateNamedListSubDialog(
 }
 
 @Composable
-private fun JoinInviteSubDialog(
+private fun ShareListSubDialog(
+    listCode: String,
+    listName: String,
+    inviteCode: String,
+    onDismiss: () -> Unit
+) {
+    val context = LocalContext.current
+    val clipboardManager = androidx.compose.ui.platform.LocalClipboardManager.current
+    var copied by remember { mutableStateOf(false) }
+
+    Dialog(onDismissRequest = onDismiss) {
+        Card(
+            shape = RoundedCornerShape(18.dp),
+            colors = CardDefaults.cardColors(containerColor = CardSurface, contentColor = InkPrimary),
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Column(
+                modifier = Modifier.padding(22.dp),
+                verticalArrangement = Arrangement.spacedBy(14.dp)
+            ) {
+                Text(AppStrings.get(context, "share_list"), style = MaterialTheme.typography.titleLarge, color = OnPrimaryContainer)
+                Text(
+                    text = "$listName (${AppStrings.get(context, "code")}$listCode)",
+                    fontSize = 15.sp,
+                    color = InkSecondary
+                )
+                Text(
+                    text = AppStrings.get(context, "share_list_desc"),
+                    fontSize = 14.sp,
+                    color = InkSecondary
+                )
+
+                Surface(
+                    color = PrimaryBlue.copy(alpha = 0.08f),
+                    shape = RoundedCornerShape(12.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Column(
+                        modifier = Modifier.padding(16.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        Text(
+                            text = AppStrings.get(context, "invite_code_title"),
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = PrimaryBlue
+                        )
+                        Text(
+                            text = inviteCode,
+                            fontSize = 28.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = InkPrimary,
+                            letterSpacing = 2.sp
+                        )
+                    }
+                }
+
+                if (copied) {
+                    Text(
+                        text = AppStrings.get(context, "code_copied"),
+                        color = SuccessGreen,
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Bold,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Button(
+                        onClick = {
+                            clipboardManager.setText(androidx.compose.ui.text.AnnotatedString(inviteCode))
+                            copied = true
+                        },
+                        colors = ButtonDefaults.buttonColors(containerColor = PrimaryBlue, contentColor = OnPrimaryWhite),
+                        modifier = Modifier
+                            .weight(1f)
+                            .defaultMinSize(minHeight = 48.dp)
+                    ) {
+                        Text(AppStrings.get(context, "copy_code"), fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                    }
+
+                    TextButton(
+                        onClick = onDismiss,
+                        modifier = Modifier.defaultMinSize(minHeight = 48.dp)
+                    ) {
+                        Text(AppStrings.get(context, "cancel"), fontSize = 16.sp, color = InkSecondary)
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun JoinNamedListSubDialog(
     onDismiss: () -> Unit,
     onConfirm: (String, String) -> Unit
 ) {
@@ -894,19 +778,16 @@ private fun JoinInviteSubDialog(
                 modifier = Modifier.padding(22.dp),
                 verticalArrangement = Arrangement.spacedBy(14.dp)
             ) {
-                Text(AppStrings.get(context, "join_invite_title"), style = MaterialTheme.typography.titleLarge, color = OnPrimaryContainer)
+                Text(AppStrings.get(context, "join_list"), style = MaterialTheme.typography.titleLarge, color = OnPrimaryContainer)
 
                 OutlinedTextField(
                     value = codeInput,
                     onValueChange = {
-                        codeInput = it.uppercase().take(12)
+                        codeInput = it.filter { ch -> ch.isDigit() }.take(6)
                         validationError = null
                     },
-                    label = { Text(AppStrings.get(context, "invite_code_hint"), fontSize = 16.sp) },
-                    keyboardOptions = KeyboardOptions(
-                        capitalization = KeyboardCapitalization.Characters,
-                        keyboardType = KeyboardType.Text
-                    ),
+                    label = { Text(AppStrings.get(context, "6_digit_code"), fontSize = 16.sp) },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                     textStyle = MaterialTheme.typography.bodyMedium.copy(color = InkPrimary),
                     colors = textFieldColors,
                     singleLine = true,
@@ -941,8 +822,8 @@ private fun JoinInviteSubDialog(
                     Button(
                         onClick = {
                             val cleanCode = codeInput.trim()
-                            if (cleanCode.length < 6) {
-                                validationError = AppStrings.get(context, "error_invite_code")
+                            if (!cleanCode.matches(Regex("^[0-9]{6}$"))) {
+                                validationError = AppStrings.get(context, "error_6_digits")
                             } else {
                                 onConfirm(cleanCode, customNameInput.trim())
                             }
