@@ -1,24 +1,35 @@
 rules_version = '2';
 service cloud.firestore {
-  match /databases/{database} /documents {
-    
-    function isAuthenticated() {
+  match /databases/{database}/documents {
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    function isSignedIn() {
       return request.auth != null;
     }
 
+    function isValidId(id) {
+      return id is string && id.size() >= 1 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
     match /users/{userId} {
-      allow read, write: if isAuthenticated() && request.auth.uid == userId;
-      
-      match /memberships/{membershipId} {
-        allow read, write: if isAuthenticated() && request.auth.uid == userId;
+      allow get, update, delete: if isSignedIn() && isValidId(userId) && request.auth.uid == userId;
+      allow list: if false;
+      allow create: if isSignedIn() && isValidId(userId) && request.auth.uid == userId;
+
+      match /memberships/{listCode} {
+        allow get, list, create, update, delete: if isSignedIn() && isValidId(userId) && request.auth.uid == userId;
       }
     }
 
-    match /lists/{listId} {
-      allow read, write: if isAuthenticated();
+    match /lists/{listCode} {
+      allow get, create, update, delete: if isSignedIn();
+      allow list: if isSignedIn();
 
       match /items/{itemId} {
-        allow read, write: if isAuthenticated();
+        allow get, list: if isSignedIn();
+        allow create, update, delete: if isSignedIn();
       }
     }
   }

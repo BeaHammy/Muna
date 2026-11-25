@@ -232,7 +232,7 @@ fun ManageListsDialog(
                                         )
                                     }
 
-                                    if (displayedMemberships.size > 1) {
+                                    if (membership.isOwner) {
                                         OutlinedButton(
                                          onClick = {
                                              scope.launch {
@@ -269,7 +269,8 @@ fun ManageListsDialog(
                                          )
                                      }
 
-                                     OutlinedButton(
+                                    if (displayedMemberships.size > 1) {
+                                        OutlinedButton(
                                             onClick = { leaveTarget = membership },
                                             enabled = !isBusy,
                                             shape = RoundedCornerShape(10.dp),
@@ -469,6 +470,7 @@ fun ManageListsDialog(
             }
         )
     }
+}
 }
 
 @Composable

@@ -21,6 +21,7 @@ data class UserProfile(
 data class UserListMembership(
     val code: String = "",
     val customName: String = "",
+    val isOwner: Boolean = false,
     @ServerTimestamp val joinedAt: Timestamp? = null,
     @ServerTimestamp val updatedAt: Timestamp? = null
 )

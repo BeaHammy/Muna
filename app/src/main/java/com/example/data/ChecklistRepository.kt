@@ -22,10 +22,14 @@ import kotlin.random.Random
 class ChecklistRepository(private val db: FirebaseFirestore) {
 
     constructor(context: Context) : this(
-        FirebaseFirestore.getInstance(
-            context.applicationContext.getString(R.string.firestore_database_id)
-        )
+        FirebaseFirestore.getInstance()
     )
+
+    init {
+        try {
+            db.enableNetwork()
+        } catch (_: Exception) {}
+    }
 
     private val auth = Firebase.auth
 
@@ -37,8 +41,16 @@ class ChecklistRepository(private val db: FirebaseFirestore) {
     suspend fun getUserProfile(uid: String): UserProfile? {
         if (uid.isBlank() || auth.currentUser?.uid != uid) return null
         return try {
-            val doc = db.collection("users").document(uid).get().await()
-            if (!doc.exists()) {
+            val doc = try {
+                db.collection("users").document(uid).get(com.google.firebase.firestore.Source.SERVER).await()
+            } catch (_: Exception) {
+                try {
+                    db.collection("users").document(uid).get(com.google.firebase.firestore.Source.CACHE).await()
+                } catch (_: Exception) {
+                    null
+                }
+            }
+            if (doc == null || !doc.exists()) {
                 val currentUser = auth.currentUser
                 val defaultName = currentUser?.displayName?.takeIf { it.isNotBlank() }
                     ?: currentUser?.email?.substringBefore("@")?.takeIf { it.isNotBlank() }
@@ -59,12 +71,12 @@ class ChecklistRepository(private val db: FirebaseFirestore) {
                 saveProfileInternal(fixed)
                 fixed
             } else {
-                profile
+                profile ?: UserProfile(uid = uid, name = "Użytkownik", listCode = "455344", role = "opiekun")
             }
         } catch (e: CancellationException) {
             throw e
         } catch (e: Exception) {
-            Log.e("ChecklistRepo", "Error getting user profile for users/$uid", e)
+            Log.w("ChecklistRepo", "Offline or error getting user profile for users/$uid, returning default", e)
             UserProfile(
                 uid = uid,
                 name = auth.currentUser?.displayName ?: "Użytkownik",
@@ -202,6 +214,10 @@ class ChecklistRepository(private val db: FirebaseFirestore) {
             require(cleanCode.matches(Regex("^[0-9]{6}$"))) { "List code must be 6 digits" }
             val cleanName = customName.trim().take(80).ifBlank { "Lista $cleanCode" }
 
+            val listDoc = db.collection("lists").document(cleanCode).get().await()
+            val ownerUid = listDoc.getString("ownerUid")
+            val isOwner = (ownerUid == uid)
+
             val docRef = db.collection("users").document(uid)
                 .collection("memberships").document(cleanCode)
             val existing = docRef.get().await()
@@ -209,6 +225,7 @@ class ChecklistRepository(private val db: FirebaseFirestore) {
                 docRef.update(
                     mapOf(
                         "customName" to cleanName,
+                        "isOwner" to isOwner,
                         "updatedAt" to FieldValue.serverTimestamp()
                     )
                 ).await()
@@ -217,6 +234,7 @@ class ChecklistRepository(private val db: FirebaseFirestore) {
                     mapOf(
                         "code" to cleanCode,
                         "customName" to cleanName,
+                        "isOwner" to isOwner,
                         "joinedAt" to FieldValue.serverTimestamp(),
                         "updatedAt" to FieldValue.serverTimestamp()
                     )
@@ -299,19 +317,22 @@ class ChecklistRepository(private val db: FirebaseFirestore) {
 
     suspend fun generateInviteCode(listCode: String): Result<String> {
         return try {
-            requireUserId()
+            val uid = requireUserId()
             val cleanCode = listCode.trim()
             require(cleanCode.matches(Regex("^[0-9]{6}$"))) { "Invalid list code" }
 
             val inviteCode = String.format("%06d", Random.nextInt(100_000, 1_000_000))
             val expiresAt = System.currentTimeMillis() + 15 * 60 * 1000L // 15 minutes
 
-            db.collection("lists").document(cleanCode).update(
+            db.collection("lists").document(cleanCode).set(
                 mapOf(
+                    "code" to cleanCode,
+                    "ownerUid" to uid,
                     "inviteCode" to inviteCode,
                     "inviteExpiresAt" to expiresAt,
                     "updatedAt" to FieldValue.serverTimestamp()
-                )
+                ),
+                com.google.firebase.firestore.SetOptions.merge()
             ).await()
 
             Result.success(inviteCode)
